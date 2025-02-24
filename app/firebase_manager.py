@@ -9,27 +9,27 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 def initialize_firebase():
-    try:
-        # Laden der Firebase-Konfiguration aus Umgebungsvariablen
-        firebase_config = {
-            "apiKey": os.environ.get("FIREBASE_API_KEY"),
-            "authDomain": os.environ.get("FIREBASE_AUTH_DOMAIN"),
-            "projectId": os.environ.get("FIREBASE_PROJECT_ID"),
-            "storageBucket": os.environ.get("FIREBASE_STORAGE_BUCKET"),
-            "messagingSenderId": os.environ.get("FIREBASE_MESSAGING_SENDER_ID"),
-            "appId": os.environ.get("FIREBASE_APP_ID")
-        }
-        firebase_service_account = json.loads(os.environ.get('FIREBASE_SERVICE_ACCOUNT_KEY', '{}'))
-        cred = credentials.Certificate(firebase_service_account)
-        firebase_admin.initialize_app(cred, {
-            'databaseURL': os.environ.get('FIREBASE_DATABASE_URL', 'https://dartochsenapp.firebaseio.com')
-        })
-        logger.info("Firebase erfolgreich initialisiert")
-    except Exception as e:
-        logger.error(f"Fehler bei der Firebase-Initialisierung: {str(e)}")
-        raise
-
-initialize_firebase()
+    if not firebase_admin._apps:
+        try:
+            firebase_config = {
+                "apiKey": os.environ.get("FIREBASE_API_KEY"),
+                "authDomain": os.environ.get("FIREBASE_AUTH_DOMAIN"),
+                "projectId": os.environ.get("FIREBASE_PROJECT_ID"),
+                "storageBucket": os.environ.get("FIREBASE_STORAGE_BUCKET"),
+                "messagingSenderId": os.environ.get("FIREBASE_MESSAGING_SENDER_ID"),
+                "appId": os.environ.get("FIREBASE_APP_ID")
+            }
+            firebase_service_account = json.loads(os.environ.get('FIREBASE_SERVICE_ACCOUNT_KEY', '{}'))
+            cred = credentials.Certificate(firebase_service_account)
+            firebase_admin.initialize_app(cred, {
+                'databaseURL': os.environ.get('FIREBASE_DATABASE_URL', 'https://dartochsenapp.firebaseio.com')
+            })
+            logger.info("Firebase erfolgreich initialisiert")
+        except Exception as e:
+            logger.error(f"Fehler bei der Firebase-Initialisierung: {str(e)}")
+            raise
+    else:
+        logger.info("Firebase-App bereits initialisiert")
 
 def push_data(path, data):
     try:
@@ -181,5 +181,3 @@ def test_db_connection():
     except Exception as e:
         logger.error(f"Datenbankverbindungsfehler: {str(e)}")
         return False
-
-# Implementieren Sie hier weitere Firebase-Funktionen bei Bedarf
