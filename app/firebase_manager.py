@@ -181,3 +181,29 @@ def test_db_connection():
     except Exception as e:
         logger.error(f"Datenbankverbindungsfehler: {str(e)}")
         return False
+
+def get_news(limit=5):
+    try:
+        news_ref = db.reference('news').order_by_child('date').limit_to_last(limit)
+        news = list(news_ref.get().values())
+        news.reverse()  # Um die neuesten zuerst zu haben
+        logger.info(f"{limit} neueste Nachrichten erfolgreich abgerufen")
+        return news
+    except Exception as e:
+        logger.error(f"Fehler beim Abrufen der Nachrichten: {str(e)}")
+        raise
+
+def get_upcoming_events(limit=5):
+    try:
+        import datetime
+        today = datetime.datetime.now().date()
+        events_ref = db.reference('events').order_by_child('date')
+        all_events = events_ref.get()
+        upcoming_events = [event for event in all_events.values() if datetime.datetime.strptime(event['date'], '%Y-%m-%d').date() >= today]
+        upcoming_events = sorted(upcoming_events, key=lambda x: x['date'])[:limit]
+        logger.info(f"{len(upcoming_events)} bevorstehende Veranstaltungen erfolgreich abgerufen")
+        return upcoming_events
+    except Exception as e:
+        logger.error(f"Fehler beim Abrufen der bevorstehenden Veranstaltungen: {str(e)}")
+        raise
+

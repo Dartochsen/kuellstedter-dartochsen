@@ -15,7 +15,19 @@ bp = Blueprint('main', __name__)
 
 @bp.route('/')
 def index():
-    return render_template('index.html')
+    news_items = get_news(5)  # Holen Sie die 5 neuesten Nachrichten
+    upcoming_events = get_upcoming_events(5)  # Holen Sie die 5 nächsten Veranstaltungen
+    return render_template('index.html', news_items=news_items, upcoming_events=upcoming_events)
+
+@bp.route('/news')
+def news():
+    news_items = get_data('news')
+    return render_template('news.html', news_items=news_items)
+
+@bp.route('/events')
+def events():
+    events = get_data('events')
+    return render_template('events.html', events=events)
 
 @bp.route('/suche')
 def suche():

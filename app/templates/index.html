@@ -3,22 +3,54 @@
 {% block title %}Willkommen bei den Küllstedter Dartochsen{% endblock %}
 
 {% block content %}
-<header>
-    <h1>Willkommen bei den Küllstedter Dartochsen</h1>
-</header>
-<main>
-    <section>
-        <h2>Über uns</h2>
-        <p>Die Küllstedter Dartochsen sind ein engagierter Dartverein aus Thüringen. Wir bieten regelmäßige Trainings, spannende Turniere und eine freundliche Gemeinschaft für alle Dart-Enthusiasten.</p>
-    </section>
-    <section>
-        <h2>Neuigkeiten</h2>
-        <!-- Hier können Sie aktuelle Neuigkeiten oder Ankündigungen einfügen -->
-        <ul>
-            <li>Nächstes Turnier: 15. März 2025</li>
-            <li>Neuer Trainingsplan ab April verfügbar</li>
-            <li>Mitgliederversammlung am 1. Mai 2025</li>
-        </ul>
-    </section>
-</main>
+<div class="container">
+    <header>
+        <h1>Willkommen bei den Küllstedter Dartochsen</h1>
+    </header>
+    <main>
+        <section>
+            <h2>Über uns</h2>
+            <p>Die Küllstedter Dartochsen sind ein engagierter Dartverein aus Thüringen. Wir bieten regelmäßige Trainings, spannende Turniere und eine freundliche Gemeinschaft für alle Dart-Enthusiasten.</p>
+        </section>
+
+        <section>
+            <h2>Wählen Sie eine Option:</h2>
+            <div class="menu">
+                <a href="{{ url_for('main.turniere') }}" class="menu-item">Turniere</a>
+                <a href="{{ url_for('main.training') }}" class="menu-item">Training</a>
+                <a href="{{ url_for('main.mitgliederbereich') }}" class="menu-item">Mitgliederbereich</a>
+                <a href="{{ url_for('main.diskussionsforum') }}" class="menu-item">Diskussionsforum</a>
+                <a href="{{ url_for('main.marktplatz') }}" class="menu-item">Marktplatz</a>
+            </div>
+        </section>
+
+        <section>
+            <h2>Neuigkeiten</h2>
+            <ul id="news-feed">
+                {% for news_item in news_items %}
+                <li>{{ news_item.title }} - {{ news_item.date.strftime('%d.%m.%Y') }}</li>
+                {% endfor %}
+            </ul>
+        </section>
+        
+        <section>
+            <h2>Kommende Veranstaltungen</h2>
+            <ul id="events-list">
+                {% for event in upcoming_events %}
+                <li>
+                    <strong>{{ event.title }}</strong> - {{ event.date.strftime('%d.%m.%Y') }}
+                    <button onclick="registerForEvent('{{ event.id }}')">Teilnehmen</button>
+                </li>
+                {% endfor %}
+            </ul>
+        </section>
+    </main>
+</div>
+
+<script>
+function registerForEvent(eventId) {
+    // Hier können Sie AJAX-Code hinzufügen, um die Anmeldung zu verarbeiten
+    alert('Anmeldung für Event ' + eventId + ' wurde gesendet!');
+}
+</script>
 {% endblock %}
