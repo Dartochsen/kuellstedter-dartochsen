@@ -173,3 +173,5 @@ instance/config/firebase_config.py
 instance/config/serviceAccountKey.json
 instance/config/firebase_config.py
 instance/config/serviceAccountKey.json
+instance/config/firebase_config.py
+instance/config/serviceAccountKey.json
