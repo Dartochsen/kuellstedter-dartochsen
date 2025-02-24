@@ -1,15 +1,14 @@
 import sys
 import os
+import json
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from flask import Flask, render_template
 from flask_sqlalchemy import SQLAlchemy
 import logging
 from logging.handlers import RotatingFileHandler
-import os
 import firebase_admin
 from firebase_admin import credentials
-from config.firebase_config import config
 
 db = SQLAlchemy()
 
@@ -22,8 +21,19 @@ def create_app():
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
     # Firebase Initialisierung
-    cred = credentials.Certificate("instance/config/serviceAccountKey.json")
-    firebase_admin.initialize_app(cred, config)
+    firebase_service_account = json.loads(os.environ.get('FIREBASE_SERVICE_ACCOUNT_KEY'))
+    cred = credentials.Certificate(firebase_service_account)
+    
+    firebase_config = {
+        "apiKey": os.environ.get("FIREBASE_API_KEY"),
+        "authDomain": os.environ.get("FIREBASE_AUTH_DOMAIN"),
+        "projectId": os.environ.get("FIREBASE_PROJECT_ID"),
+        "storageBucket": os.environ.get("FIREBASE_STORAGE_BUCKET"),
+        "messagingSenderId": os.environ.get("FIREBASE_MESSAGING_SENDER_ID"),
+        "appId": os.environ.get("FIREBASE_APP_ID")
+    }
+    
+    firebase_admin.initialize_app(cred, firebase_config)
 
     # Initialisierung der Erweiterungen
     db.init_app(app)
