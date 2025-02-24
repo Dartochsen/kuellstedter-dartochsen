@@ -17,26 +17,33 @@ def create_app():
     
     # Konfiguration
     app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY')
-    app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL', 'sqlite:///dartochsen.db')
+    
+    # Datenbank-URL-Konfiguration
+    database_url = os.environ.get('DATABASE_URL')
+    if database_url and database_url.startswith("postgres://"):
+        database_url = database_url.replace("postgres://", "postgresql://", 1)
+    
+    app.config['SQLALCHEMY_DATABASE_URI'] = database_url
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
     # Firebase Initialisierung
-    firebase_config = {
-        "apiKey": os.environ.get("FIREBASE_API_KEY"),
-        "authDomain": os.environ.get("FIREBASE_AUTH_DOMAIN"),
-        "projectId": os.environ.get("FIREBASE_PROJECT_ID"),
-        "storageBucket": os.environ.get("FIREBASE_STORAGE_BUCKET"),
-        "messagingSenderId": os.environ.get("FIREBASE_MESSAGING_SENDER_ID"),
-        "appId": os.environ.get("FIREBASE_APP_ID")
-    }
-    
-    firebase_service_account = json.loads(os.environ.get('FIREBASE_SERVICE_ACCOUNT_KEY', '{}'))
-    if 'type' not in firebase_service_account:
-        firebase_service_account['type'] = 'service_account'
+    firebase_config = json.loads(os.environ.get('FIREBASE_SERVICE_ACCOUNT_KEY', '{}'))
+    if 'type' not in firebase_config:
+        firebase_config['type'] = 'service_account'
     
     try:
-        cred = credentials.Certificate(firebase_service_account)
-        firebase_admin.initialize_app(cred, firebase_config)
+        cred = credentials.Certificate(firebase_config)
+        
+        firebase_app_config = {
+            "apiKey": os.environ.get("FIREBASE_API_KEY"),
+            "authDomain": os.environ.get("FIREBASE_AUTH_DOMAIN"),
+            "projectId": os.environ.get("FIREBASE_PROJECT_ID"),
+            "storageBucket": os.environ.get("FIREBASE_STORAGE_BUCKET"),
+            "messagingSenderId": os.environ.get("FIREBASE_MESSAGING_SENDER_ID"),
+            "appId": os.environ.get("FIREBASE_APP_ID")
+        }
+        
+        firebase_admin.initialize_app(cred, firebase_app_config)
     except Exception as e:
         app.logger.error(f"Failed to initialize Firebase: {str(e)}")
 
@@ -55,10 +62,10 @@ def create_app():
 
     app.logger.setLevel(logging.INFO)
     app.logger.info('Dartochsen startup')
-    app.logger.info(f"Firebase app config: {firebase_config}")
+    app.logger.info(f"Firebase app config: {firebase_app_config}")
     # Entfernen Sie sensible Informationen aus den Logs
-    safe_firebase_service_account = {k: v for k, v in firebase_service_account.items() if k != 'private_key'}
-    app.logger.info(f"Firebase credentials config: {safe_firebase_service_account}")
+    safe_firebase_config = {k: v for k, v in firebase_config.items() if k != 'private_key'}
+    app.logger.info(f"Firebase credentials config: {safe_firebase_config}")
 
     # Fehlerbehandlung
     @app.errorhandler(500)
