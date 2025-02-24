@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Marktplatz</h1>
+<a href="{{ url_for('neues_angebot') }}" class="btn">Neues Angebot erstellen</a>
+<div id="angebote-container" class="angebote-grid">
+    <!-- Angebote werden hier dynamisch eingefügt -->
+</div>
+
+<script src="{{ url_for('static', filename='js/realtime.js') }}"></script>
+<script>
+    function updateAngebote(data) {
+        const container = document.getElementById('angebote-container');
+        container.innerHTML = '';
+        for (const [key, angebot] of Object.entries(data)) {
+            const angebotElement = document.createElement('div');
+            angebotElement.className = 'angebot-card';
+            angebotElement.innerHTML = `
+                <h3>${angebot.titel}</h3>
+                <p>${angebot.beschreibung}</p>
+                <p>Preis: ${angebot.preis} €</p>
+                <p>Verkäufer: ${angebot.verkäufer}</p>
+                <p>Datum: ${angebot.datum}</p>
+            `;
+            container.appendChild(angebotElement);
+        }
+    }
+
+    setupRealtimeUpdates('marktplatz_angebote', updateAngebote);
+</script>
+{% endblock %}

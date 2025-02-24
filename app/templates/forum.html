@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Diskussionsforum</h1>
+<a href="{{ url_for('neues_thema') }}" class="btn">Neues Thema erstellen</a>
+<table id="forum-table">
+    <thead>
+        <tr>
+            <th>Titel</th>
+            <th>Autor</th>
+            <th>Datum</th>
+            <th>Antworten</th>
+        </tr>
+    </thead>
+    <tbody>
+        <!-- Forumthemen werden hier dynamisch eingefügt -->
+    </tbody>
+</table>
+
+<script src="{{ url_for('static', filename='js/realtime.js') }}"></script>
+<script>
+    function updateForumThemen(data) {
+        const tableBody = document.querySelector('#forum-table tbody');
+        tableBody.innerHTML = '';
+        for (const [key, thema] of Object.entries(data)) {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td><a href="/thema/${key}">${thema.titel}</a></td>
+                <td>${thema.autor}</td>
+                <td>${thema.datum}</td>
+                <td>${thema.antworten ? thema.antworten.length : 0}</td>
+            `;
+            tableBody.appendChild(row);
+        }
+    }
+
+    setupRealtimeUpdates('forum_themen', updateForumThemen);
+</script>
+{% endblock %}

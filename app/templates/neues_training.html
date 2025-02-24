@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Neues Training erstellen</h1>
+<form method="POST">
+    <label for="datum">Datum:</label>
+    <input type="date" id="datum" name="datum" required>
+    
+    <label for="uhrzeit">Uhrzeit:</label>
+    <input type="time" id="uhrzeit" name="uhrzeit" required>
+    
+    <label for="dauer">Dauer (in Minuten):</label>
+    <input type="number" id="dauer" name="dauer" required>
+    
+    <label for="thema">Thema:</label>
+    <input type="text" id="thema" name="thema" required>
+    
+    <label for="trainer">Trainer:</label>
+    <input type="text" id="trainer" name="trainer" required>
+    
+    <button type="submit">Training erstellen</button>
+</form>
+{% endblock %}

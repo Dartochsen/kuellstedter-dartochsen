@@ -1,0 +1,120 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>{{ turnier.name }}</h1>
+<p>Datum: {{ turnier.datum }}</p>
+<p>Ort: {{ turnier.ort }}</p>
+<p>Phase: {{ turnier.phase }}</p>
+
+{% if turnier.phase == 'Anmeldung' %}
+<h2>Teams anmelden</h2>
+<form id="team-form">
+    <input type="text" name="team_name" required>
+    <button type="submit">Team hinzufügen</button>
+</form>
+<button id="start-round-robin">Round Robin starten</button>
+{% endif %}
+
+{% if turnier.phase == 'Round Robin' %}
+<h2>Round Robin Matches</h2>
+<ul>
+{% for match in turnier.matches %}
+    <li>
+        {{ match.team1 }} vs {{ match.team2 }}
+        {% if match.score1 is none %}
+        <form class="match-form" data-match-id="{{ loop.index0 }}">
+            <input type="number" name="score1" required>
+            <input type="number" name="score2" required>
+            <button type="submit">Ergebnis eintragen</button>
+        </form>
+        {% else %}
+        Ergebnis: {{ match.score1 }} - {{ match.score2 }}
+        {% endif %}
+    </li>
+{% endfor %}
+</ul>
+<button id="start-knockout">K.O.-Phase starten</button>
+{% endif %}
+
+{% if turnier.phase == 'Knockout' %}
+<h2>K.O.-Phase</h2>
+<ul>
+{% for match in turnier.knockout_matches %}
+    <li>
+        {{ match.team1 }} vs {{ match.team2 }}
+        {% if match.score1 is none %}
+        <form class="match-form" data-match-id="{{ loop.index0 }}">
+            <input type="number" name="score1" required>
+            <input type="number" name="score2" required>
+            <button type="submit">Ergebnis eintragen</button>
+        </form>
+        {% else %}
+        Ergebnis: {{ match.score1 }} - {{ match.score2 }}
+        {% endif %}
+    </li>
+{% endfor %}
+</ul>
+{% endif %}
+
+<script>
+document.getElementById('team-form').addEventListener('submit', function(e) {
+    e.preventDefault();
+    const formData = new FormData(this);
+    fetch('{{ url_for("team_hinzufuegen", turnier_id=turnier.id) }}', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('Team erfolgreich hinzugefügt!');
+            location.reload();
+        }
+    });
+});
+
+document.getElementById('start-round-robin').addEventListener('click', function() {
+    fetch('{{ url_for("start_round_robin", turnier_id=turnier.id) }}', {
+        method: 'POST'
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('Round Robin gestartet!');
+            location.reload();
+        }
+    });
+});
+
+document.querySelectorAll('.match-form').forEach(form => {
+    form.addEventListener('submit', function(e) {
+        e.preventDefault();
+        const formData = new FormData(this);
+        formData.append('match_id', this.dataset.matchId);
+        fetch('{{ url_for("update_match", turnier_id=turnier.id) }}', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('Ergebnis eingetragen!');
+                location.reload();
+            }
+        });
+    });
+});
+
+document.getElementById('start-knockout').addEventListener('click', function() {
+    fetch('{{ url_for("start_knockout", turnier_id=turnier.id) }}', {
+        method: 'POST'
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('K.O.-Phase gestartet!');
+            location.reload();
+        }
+    });
+});
+</script>
+{% endblock %}

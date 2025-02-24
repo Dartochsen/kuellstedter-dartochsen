@@ -1,0 +1,27 @@
+/* Für Tablets */
+@media (max-width: 768px) {
+    .container {
+        padding: 10px;
+    }
+    
+    table {
+        font-size: 14px;
+    }
+}
+
+/* Für Smartphones */
+@media (max-width: 480px) {
+    .container {
+        padding: 5px;
+    }
+    
+    table {
+        font-size: 12px;
+    }
+    
+    .btn {
+        display: block;
+        width: 100%;
+        margin-bottom: 10px;
+    }
+}

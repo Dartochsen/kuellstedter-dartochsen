@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <title>{% block title %}Küllstedter Dartochsen{% endblock %}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/responsive.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/animations.css') }}">
+    <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
+    <!-- Global site tag (gtag.js) - Google Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=dartochsenapp"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'dartochsenapp');
+    </script>
+    <!-- Firebase App (the core Firebase SDK) is always required and must be listed first -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <!-- Add Firebase products that you want to use -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-messaging.js"></script>
+</head>
+<body>
+    {% include 'navigation.html' %}
+
+    <div class="container mt-4">
+        {% block content %}{% endblock %}
+    </div>
+
+    <footer>
+        <p>&copy; 2025 Küllstedter Dartochsen</p>
+    </footer>
+
+    <!-- Chatbot Container -->
+    <div id="chatbot-container" style="position: fixed; bottom: 20px; right: 20px; width: 300px; border: 1px solid #ddd; border-radius: 10px; background: white; box-shadow: 0 0 10px rgba(0,0,0,0.1);">
+        <div id="chatbot-messages" style="height: 300px; overflow-y: auto; padding: 10px;"></div>
+        <div style="display: flex; padding: 10px;">
+            <input type="text" id="chatbot-input" placeholder="Frag den Dartochsen-Bot..." style="flex-grow: 1; margin-right: 10px; padding: 5px;">
+            <button onclick="sendMessage()" style="padding: 5px 10px;">Senden</button>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="{{ url_for('static', filename='js/main.js') }}" defer></script>
+    <script src="{{ url_for('static', filename='js/notifications.js') }}" defer></script>
+    <script src="{{ url_for('static', filename='js/service-worker.js') }}" defer></script>
+    <script src="{{ url_for('static', filename='js/realtime.js') }}" defer></script>
+    <script>
+    document.addEventListener("DOMContentLoaded", function() {
+        var lazyImages = [].slice.call(document.querySelectorAll("img.lazy"));
+        
+        if ("IntersectionObserver" in window) {
+            let lazyImageObserver = new IntersectionObserver(function(entries, observer) {
+                entries.forEach(function(entry) {
+                    if (entry.isIntersecting) {
+                        let lazyImage = entry.target;
+                        lazyImage.src = lazyImage.dataset.src;
+                        lazyImage.classList.remove("lazy");
+                        lazyImageObserver.unobserve(lazyImage);
+                    }
+                });
+            });
+        
+            lazyImages.forEach(function(lazyImage) {
+                lazyImageObserver.observe(lazyImage);
+            });
+        }
+    });
+
+    // Service Worker Registration
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/static/js/sw.js')
+            .then(registration => {
+                console.log('Service Worker registered:', registration);
+            })
+            .catch(error => {
+                console.log('Service Worker registration failed:', error);
+            });
+        });
+    }
+
+    function sendMessage() {
+        var input = document.getElementById('chatbot-input');
+        var message = input.value;
+        input.value = '';
+        
+        var messagesDiv = document.getElementById('chatbot-messages');
+        messagesDiv.innerHTML += '<p><strong>Du:</strong> ' + message + '</p>';
+        
+        fetch('/chatbot', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({message: message}),
+        })
+        .then(response => response.json())
+        .then(data => {
+            messagesDiv.innerHTML += '<p><strong>Bot:</strong> ' + data.response + '</p>';
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        });
+    }
+
+    // Event-Listener für die Enter-Taste
+    document.getElementById('chatbot-input').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            sendMessage();
+        }
+    });
+    </script>
+</body>
+</html>

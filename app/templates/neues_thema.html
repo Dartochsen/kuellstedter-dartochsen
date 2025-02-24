@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Neues Thema erstellen</h1>
+<form method="POST">
+    <label for="titel">Titel:</label>
+    <input type="text" id="titel" name="titel" required>
+    
+    <label for="inhalt">Inhalt:</label>
+    <textarea id="inhalt" name="inhalt" rows="4" required></textarea>
+    
+    <label for="autor">Autor:</label>
+    <input type="text" id="autor" name="autor" required>
+    
+    <button type="submit">Thema erstellen</button>
+</form>
+{% endblock %}

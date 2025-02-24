@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="row">
+    <div class="col-md-8">
+        <h1 class="mb-4 fade-in">Mitgliederbereich</h1>
+        
+        <!-- Suchfunktion und Filter -->
+        <div class="mb-3">
+            <input type="text" id="memberSearch" class="form-control" placeholder="Mitglied suchen...">
+        </div>
+        <div class="mb-3">
+            <select id="teamFilter" class="form-select">
+                <option value="">Alle Teams</option>
+                <!-- Fügen Sie hier dynamisch Team-Optionen hinzu -->
+            </select>
+        </div>
+        
+        <!-- Mitgliederstatistiken -->
+        <div class="alert alert-info">
+            Gesamtanzahl der Mitglieder: {{ mitglieder|length }}
+        </div>
+        
+        <table class="table table-striped slide-in">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>E-Mail</th>
+                    <th>Team</th>
+                    <th>Status</th>
+                    <th>Aktionen</th>
+                </tr>
+            </thead>
+            <tbody>
+            {% for mitglied in mitglieder %}
+                <tr>
+                    <td><a href="{{ url_for('mitglied_profil', mitglied_id=mitglied.id) }}">{{ mitglied.name }}</a></td>
+                    <td>{{ mitglied.email }}</td>
+                    <td>{{ mitglied.team }}</td>
+                    <td>{{ mitglied.status }}</td>
+                    <td>
+                        <button class="btn btn-sm btn-primary edit-member" data-id="{{ mitglied.id }}">Bearbeiten</button>
+                    </td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+        
+        <!-- Exportfunktion -->
+        <button id="exportMembers" class="btn btn-secondary">Mitgliederliste exportieren</button>
+    </div>
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Neues Mitglied hinzufügen</h5>
+                <form method="POST" action="{{ url_for('neues_mitglied') }}">
+                    <div class="mb-3">
+                        <label for="name" class="form-label">Name</label>
+                        <input type="text" class="form-control" id="name" name="name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="email" class="form-label">E-Mail</label>
+                        <input type="email" class="form-control" id="email" name="email" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="team" class="form-label">Team</label>
+                        <input type="text" class="form-control" id="team" name="team">
+                    </div>
+                    <div class="mb-3">
+                        <label for="role" class="form-label">Rolle</label>
+                        <select class="form-select" id="role" name="role">
+                            <option value="member">Mitglied</option>
+                            <option value="admin">Administrator</option>
+                            <option value="coach">Trainer</option>
+                        </select>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Hinzufügen</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Implementieren Sie hier die JavaScript-Funktionen für Suche, Filter und Export
+document.getElementById('memberSearch').addEventListener('input', function(e) {
+    // Implementieren Sie hier die Suchlogik
+});
+
+document.getElementById('teamFilter').addEventListener('change', function(e) {
+    // Implementieren Sie hier die Filterlogik
+});
+
+document.getElementById('exportMembers').addEventListener('click', function() {
+    // Implementieren Sie hier die Exportlogik
+});
+
+// Bearbeitungsfunktion
+document.querySelectorAll('.edit-member').forEach(button => {
+    button.addEventListener('click', function() {
+        const memberId = this.getAttribute('data-id');
+        // Implementieren Sie hier die Bearbeitungslogik
+    });
+});
+</script>
+{% endblock %}

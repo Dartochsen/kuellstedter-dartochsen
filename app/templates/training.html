@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Training</h1>
+<a href="{{ url_for('neues_training') }}" class="btn">Neues Training erstellen</a>
+<table id="training-table">
+    <thead>
+        <tr>
+            <th>Datum</th>
+            <th>Uhrzeit</th>
+            <th>Dauer</th>
+            <th>Thema</th>
+            <th>Trainer</th>
+        </tr>
+    </thead>
+    <tbody>
+        <!-- Trainingseinheiten werden hier dynamisch eingefügt -->
+    </tbody>
+</table>
+
+<script src="{{ url_for('static', filename='js/realtime.js') }}"></script>
+<script>
+    function updateTrainings(data) {
+        const tableBody = document.querySelector('#training-table tbody');
+        tableBody.innerHTML = '';
+        for (const [key, training] of Object.entries(data)) {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>${training.datum}</td>
+                <td>${training.uhrzeit}</td>
+                <td>${training.dauer}</td>
+                <td>${training.thema}</td>
+                <td>${training.trainer}</td>
+            `;
+            tableBody.appendChild(row);
+        }
+    }
+
+    setupRealtimeUpdates('trainings', updateTrainings);
+</script>
+{% endblock %}

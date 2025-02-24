@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Neuen Termin hinzufügen</h1>
+<form method="POST">
+    <label for="titel">Titel:</label>
+    <input type="text" id="titel" name="titel" required>
+    
+    <label for="datum">Datum:</label>
+    <input type="date" id="datum" name="datum" required>
+    
+    <label for="uhrzeit">Uhrzeit:</label>
+    <input type="time" id="uhrzeit" name="uhrzeit" required>
+    
+    <label for="beschreibung">Beschreibung:</label>
+    <textarea id="beschreibung" name="beschreibung" rows="4"></textarea>
+    
+    <label for="typ">Typ:</label>
+    <select id="typ" name="typ">
+        <option value="Spieltag">Spieltag</option>
+        <option value="Training">Training</option>
+        <option value="Event">Event</option>
+    </select>
+    
+    <button type="submit">Termin hinzufügen</button>
+</form>
+{% endblock %}

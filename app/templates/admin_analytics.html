@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block content %}
+<h1 class="mb-4 fade-in">Admin Analytics</h1>
+<div class="row slide-in">
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Gesamtnutzer</h5>
+                <p class="card-text display-4">{{ data.total_users }}</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Gesamtturniere</h5>
+                <p class="card-text display-4">{{ data.total_tournaments }}</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Aktive Diskussionen</h5>
+                <p class="card-text display-4">{{ data.active_discussions }}</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

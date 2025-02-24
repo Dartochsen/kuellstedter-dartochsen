@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Spieleranalyse</h1>
+{% for player in players %}
+<div class="player-analysis">
+    <h2>{{ player.name }}</h2>
+    <p><strong>Durchschnittliche Punktzahl:</strong> {{ player.average_score }}</p>
+    <p><strong>Gespielte Spiele:</strong> {{ player.games_played }}</p>
+    <p><strong>Trainingsstunden:</strong> {{ player.training_hours }}</p>
+    <p><strong>Empfehlung:</strong> {{ player.recommendation }}</p>
+    
+    {% if analyzed_data[player.id] %}
+    <h3>Detaillierte Analyse</h3>
+    <ul>
+        <li>Durchschnittlicher Wurfwinkel: {{ analyzed_data[player.id]['avg_angle'] }}</li>
+        <li>Durchschnittliche Geschwindigkeit: {{ analyzed_data[player.id]['avg_velocity'] }}</li>
+        <li>Durchschnittliche Genauigkeit: {{ analyzed_data[player.id]['avg_accuracy'] }}</li>
+        <li>Höchste Punktzahl: {{ analyzed_data[player.id]['max_score'] }}</li>
+    </ul>
+    {% endif %}
+    
+    <a href="{{ url_for('player_performance', player_id=player.id) }}">Detaillierte Leistungsdaten anzeigen</a>
+</div>
+{% endfor %}
+{% endblock %}

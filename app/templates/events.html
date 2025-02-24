@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Termine & Veranstaltungen</h1>
+<a href="{{ url_for('neuer_termin') }}" class="btn">Neuen Termin hinzufügen</a>
+<table>
+    <thead>
+        <tr>
+            <th>Titel</th>
+            <th>Datum</th>
+            <th>Uhrzeit</th>
+            <th>Beschreibung</th>
+            <th>Typ</th>
+        </tr>
+    </thead>
+    <tbody>
+    {% for termin in termine %}
+        <tr>
+            <td>{{ termin.titel }}</td>
+            <td>{{ termin.datum }}</td>
+            <td>{{ termin.uhrzeit }}</td>
+            <td>{{ termin.beschreibung }}</td>
+            <td>{{ termin.typ }}</td>
+        </tr>
+    {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

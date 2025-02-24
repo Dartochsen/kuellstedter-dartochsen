@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Spielerdaten erfassen</h1>
+<form method="POST">
+    <label for="player_id">Spieler:</label>
+    <select name="player_id" id="player_id" required>
+        {% for player in players %}
+        <option value="{{ player.id }}">{{ player.name }}</option>
+        {% endfor %}
+    </select><br>
+
+    <label for="throw_angle">Wurfwinkel:</label>
+    <input type="number" id="throw_angle" name="throw_angle" step="0.1" required><br>
+
+    <label for="speed">Geschwindigkeit:</label>
+    <input type="number" id="speed" name="speed" step="0.1" required><br>
+
+    <label for="accuracy">Genauigkeit:</label>
+    <input type="number" id="accuracy" name="accuracy" step="0.1" required><br>
+
+    <label for="score">Punktzahl:</label>
+    <input type="number" id="score" name="score" required><br>
+
+    <input type="submit" value="Daten speichern">
+</form>
+
+<h2>Spielerliste</h2>
+<ul>
+    {% for player in players %}
+    <li><a href="{{ url_for('player_performance', player_id=player.id) }}">{{ player.name }}</a></li>
+    {% endfor %}
+</ul>
+{% endblock %}

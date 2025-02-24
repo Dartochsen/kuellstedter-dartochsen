@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Neues Turnier erstellen</h1>
+<form method="POST">
+    <label for="name">Name:</label>
+    <input type="text" id="name" name="name" required>
+    
+    <label for="datum">Datum:</label>
+    <input type="date" id="datum" name="datum" required>
+    
+    <label for="ort">Ort:</label>
+    <input type="text" id="ort" name="ort" required>
+    
+    <label for="modus">Turniermodus:</label>
+    <select id="modus" name="modus">
+        <option value="Einfaches K.O.-System">Einfaches K.O.-System</option>
+        <option value="Doppel-K.O.-System">Doppel-K.O.-System</option>
+        <option value="Gruppenphase">Gruppenphase</option>
+        <option value="Schweizer System">Schweizer System</option>
+    </select>
+    
+    <button type="submit">Turnier erstellen</button>
+</form>
+{% endblock %}

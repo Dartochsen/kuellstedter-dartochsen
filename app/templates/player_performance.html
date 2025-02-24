@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Leistung von {{ player.name }}</h1>
+<table>
+    <thead>
+        <tr>
+            <th>Datum</th>
+            <th>Wurfwinkel</th>
+            <th>Geschwindigkeit</th>
+            <th>Genauigkeit</th>
+            <th>Punktzahl</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for data in performance_data %}
+        <tr>
+            <td>{{ data.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+            <td>{{ data.angle }}</td>
+            <td>{{ data.velocity }}</td>
+            <td>{{ data.accuracy }}</td>
+            <td>{{ data.score }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+<a href="{{ url_for('player_data') }}">Zurück zur Datenerfassung</a>
+{% endblock %}
