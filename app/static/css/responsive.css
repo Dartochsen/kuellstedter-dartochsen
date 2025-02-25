@@ -1,27 +1,104 @@
+/* Für große Tablets und kleine Desktops */
+@media (max-width: 1024px) {
+    .container {
+        max-width: 90%;
+    }
+
+    h1 {
+        font-size: 2.2em;
+    }
+
+    h2 {
+        font-size: 1.8em;
+    }
+}
+
 /* Für Tablets */
 @media (max-width: 768px) {
     .container {
-        padding: 10px;
+        padding: 15px;
     }
     
     table {
         font-size: 14px;
+    }
+
+    .menu {
+        flex-direction: column;
+    }
+
+    .menu-item {
+        width: 100%;
+        margin: 5px 0;
+    }
+
+    nav ul {
+        flex-direction: column;
+    }
+
+    nav ul li {
+        margin: 10px 0;
+    }
+}
+
+/* Für große Smartphones */
+@media (max-width: 600px) {
+    h1 {
+        font-size: 2em;
+    }
+
+    h2 {
+        font-size: 1.6em;
+    }
+
+    form {
+        max-width: 100%;
     }
 }
 
 /* Für Smartphones */
 @media (max-width: 480px) {
     .container {
-        padding: 5px;
+        padding: 10px;
     }
     
     table {
         font-size: 12px;
     }
     
-    .btn {
+    .btn, button {
         display: block;
         width: 100%;
         margin-bottom: 10px;
+        text-align: center;
+    }
+
+    input[type="text"],
+    input[type="email"],
+    input[type="number"],
+    input[type="date"],
+    input[type="time"],
+    textarea,
+    select {
+        font-size: 14px;
+    }
+
+    footer {
+        position: static;
+    }
+}
+
+/* Für sehr kleine Bildschirme */
+@media (max-width: 320px) {
+    body {
+        font-size: 14px;
+    }
+
+    h1 {
+        font-size: 1.8em;
+    }
+
+    h2 {
+        font-size: 1.4em;
     }
 }

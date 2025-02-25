@@ -40,11 +40,15 @@ def push_data(path, data):
         logger.error(f"Fehler beim Pushen von Daten zu {path}: {str(e)}")
         raise
 
-def get_data(path):
+def get_data(path, limit=None):
     try:
         ref = db.reference(path)
         data = ref.get()
-        logger.info(f"Daten erfolgreich von {path} abgerufen")
+        logger.info(f"Daten erfolgreich von {path} abgerufen: {data}")
+        
+        if limit and isinstance(data, list):
+            data = data[:limit]
+        
         return data
     except Exception as e:
         logger.error(f"Fehler beim Abrufen von Daten von {path}: {str(e)}")

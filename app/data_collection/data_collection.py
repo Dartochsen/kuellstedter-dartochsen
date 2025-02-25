@@ -1,5 +1,5 @@
 from datetime import datetime
-from app.models.player import Player, ThrowData
+from app.models import Player, ThrowData
 from app import db
 
 def collect_player_data(player_id, performance_metrics):
