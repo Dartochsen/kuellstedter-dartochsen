@@ -17,6 +17,8 @@ bp = Blueprint('main', __name__)
 def index():
     news_items = get_news(5)  # Holen Sie die 5 neuesten Nachrichten
     upcoming_events = get_upcoming_events(5)  # Holen Sie die 5 nächsten Veranstaltungen
+    print("News items:", news_items)  # Debugging-Ausgabe
+    print("Upcoming events:", upcoming_events)  # Debugging-Ausgabe
     return render_template('index.html', news_items=news_items, upcoming_events=upcoming_events)
 
 @bp.route('/news')
