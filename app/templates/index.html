@@ -13,44 +13,91 @@
             <p>Die Küllstedter Dartochsen sind ein engagierter Dartverein aus Thüringen. Wir bieten regelmäßige Trainings, spannende Turniere und eine freundliche Gemeinschaft für alle Dart-Enthusiasten.</p>
         </section>
 
-        <section>
-            <h2>Wählen Sie eine Option:</h2>
-            <div class="menu">
-                <a href="{{ url_for('main.turniere') }}" class="menu-item">Turniere</a>
-                <a href="{{ url_for('main.training') }}" class="menu-item">Training</a>
-                <a href="{{ url_for('main.mitgliederbereich') }}" class="menu-item">Mitgliederbereich</a>
-                <a href="{{ url_for('main.diskussionsforum') }}" class="menu-item">Diskussionsforum</a>
-                <a href="{{ url_for('main.marktplatz') }}" class="menu-item">Marktplatz</a>
-            </div>
-        </section>
+        {% if current_user.is_authenticated %}
+            <section>
+                <h2>Willkommen zurück, {{ current_user.username }}!</h2>
+                <p>Hier sind einige Optionen für Sie:</p>
+                <div class="menu">
+                    <a href="{{ url_for('main.profile') }}" class="menu-item">Mein Profil</a>
+                    <a href="{{ url_for('main.turniere') }}" class="menu-item">Turniere</a>
+                    <a href="{{ url_for('main.training') }}" class="menu-item">Training</a>
+                    <a href="{{ url_for('main.diskussionsforum') }}" class="menu-item">Diskussionsforum</a>
+                    <a href="{{ url_for('main.marktplatz') }}" class="menu-item">Marktplatz</a>
+                </div>
+            </section>
+        {% else %}
+            <section>
+                <h2>Werden Sie Teil unserer Gemeinschaft</h2>
+                <p>
+                    <a href="{{ url_for('main.login') }}" class="btn btn-primary">Anmelden</a>
+                    <a href="{{ url_for('main.register') }}" class="btn btn-secondary">Registrieren</a>
+                </p>
+            </section>
+        {% endif %}
 
         <section>
             <h2>Neuigkeiten</h2>
-            <ul id="news-feed">
-                {% for news_item in news_items %}
-                <li>{{ news_item.title }} - {{ news_item.date.strftime('%d.%m.%Y') }}</li>
-                {% endfor %}
-            </ul>
+            {% if news_items %}
+                <ul id="news-feed">
+                    {% for news in news_items %}
+                    <li>
+                        <h3>{{ news.title }}</h3>
+                        <p>{{ news.content|truncate(100) }}</p>
+                        <small>Veröffentlicht am: {{ news.date }}</small>
+                    </li>
+                    {% endfor %}
+                </ul>
+            {% else %}
+                <p>Derzeit gibt es keine Neuigkeiten.</p>
+            {% endif %}
         </section>
         
         <section>
             <h2>Kommende Veranstaltungen</h2>
-            <ul id="events-list">
-                {% for event in upcoming_events %}
-                <li>
-                    <strong>{{ event.title }}</strong> - {{ event.date.strftime('%d.%m.%Y') }}
-                    <button onclick="registerForEvent('{{ event.id }}')">Teilnehmen</button>
-                </li>
-                {% endfor %}
-            </ul>
+            {% if upcoming_events %}
+                <ul id="events-list">
+                    {% for event in upcoming_events %}
+                    <li>
+                        <h3>{{ event.title }}</h3>
+                        <p>{{ event.description|truncate(100) }}</p>
+                        <p>Datum: {{ event.date }}</p>
+                        <p>Ort: {{ event.location }}</p>
+                        {% if current_user.is_authenticated %}
+                            <button onclick="registerForEvent('{{ event.id }}')">Teilnehmen</button>
+                        {% endif %}
+                    </li>
+                    {% endfor %}
+                </ul>
+            {% else %}
+                <p>Derzeit sind keine Veranstaltungen geplant.</p>
+            {% endif %}
         </section>
     </main>
 </div>
 
 <script>
 function registerForEvent(eventId) {
-    // Hier können Sie AJAX-Code hinzufügen, um die Anmeldung zu verarbeiten
-    alert('Anmeldung für Event ' + eventId + ' wurde gesendet!');
+    fetch('/register-event', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({eventId: eventId}),
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('Erfolgreich für das Event angemeldet!');
+            // Deaktivieren Sie den "Teilnehmen"-Button nach erfolgreicher Registrierung
+            document.querySelector(`button[onclick="registerForEvent('${eventId}')"]`).disabled = true;
+        } else {
+            alert('Fehler bei der Anmeldung: ' + data.message);
+        }
+    })
+    .catch((error) => {
+        console.error('Error:', error);
+        alert('Ein Fehler ist aufgetreten.');
+    });
 }
 </script>
 {% endblock %}

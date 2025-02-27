@@ -1,15 +1,32 @@
 import os
-from flask import Flask, render_template
+from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
+from flask_login import LoginManager
+from flask_bcrypt import Bcrypt
+from flask_sslify import SSLify
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
 from logging.config import dictConfig
 import firebase_admin
 from firebase_admin import credentials
 from config import Config
+from .extensions import db, bcrypt
+from .firebase_manager import initialize_event_structure, initialize_firebase
 
 # Initialisierung der Erweiterungen
 db = SQLAlchemy()
 migrate = Migrate()
+login_manager = LoginManager()
+bcrypt = Bcrypt()
+
+limiter = Limiter(
+    key_func=get_remote_address,
+    default_limits=["200 per day", "50 per hour"],
+    storage_uri="redis://localhost:6379",
+    storage_options={"socket_connect_timeout": 30},
+    strategy="fixed-window"
+)
 
 def configure_logging():
     dictConfig({
@@ -37,60 +54,65 @@ def configure_logging():
         }
     })
 
-def initialize_firebase(app):
-    if not firebase_admin._apps:
-        try:
-            private_key = os.environ.get('FIREBASE_PRIVATE_KEY', '').replace('\\n', '\n')
-            if not private_key:
-                raise ValueError("FIREBASE_PRIVATE_KEY is not set")
-
-            firebase_config = app.config['FIREBASE_CONFIG']
-            firebase_config['private_key'] = private_key
-
-            cred = credentials.Certificate(firebase_config)
-            firebase_admin.initialize_app(cred, {
-                'databaseURL': os.environ.get('FIREBASE_DATABASE_URL', 'https://dartochsenapp.firebaseio.com')
-            })
-        except Exception as e:
-            app.logger.error(f"Failed to initialize Firebase: {str(e)}")
+def print_routes(app):
+    print("Alle registrierten Routen:")
+    for rule in app.url_map.iter_rules():
+        print(f"{rule.endpoint}: {rule.rule}")
 
 def create_app(config_class=Config):
     app = Flask(__name__, template_folder='templates')
     app.config.from_object(config_class)
-
-    # Konfiguriere Logging
+    
     configure_logging()
-
-    # Initialisiere Datenbank
     db.init_app(app)
     migrate.init_app(app, db)
+    login_manager.init_app(app)
+    bcrypt.init_app(app)
+    limiter.init_app(app)
 
-    # Initialisiere Firebase
+    # Initialisiere Flask-SSLify nur in der Produktionsumgebung
+    if not app.debug and not app.testing:
+        SSLify(app)
+
     initialize_firebase(app)
 
     # Registriere Blueprints
     from app.main import bp as main_bp
-    app.logger.info(f"Versuche, Blueprint zu registrieren: {main_bp.name}")
-    app.register_blueprint(main_bp)
-    app.logger.info(f"Blueprint {main_bp.name} erfolgreich registriert")
-    app.logger.info(f"Registrierte Routen: {[str(rule) for rule in app.url_map.iter_rules()]}")
-    app.logger.info(f"Alle Routen des main Blueprints: {[rule for rule in app.url_map.iter_rules() if rule.endpoint.startswith('main.')]}")
+    from app.admin import bp as admin_bp
+    from app.api import bp as api_bp
+    from app.auth import bp as auth_bp
+    from app.errors import errors_bp, register_error_handlers
 
+    app.register_blueprint(main_bp)
+    app.register_blueprint(admin_bp, url_prefix='/admin')
+    app.register_blueprint(api_bp, url_prefix='/api')
+    app.register_blueprint(auth_bp, url_prefix='/auth')
+    app.register_blueprint(errors_bp)
+    
+    # Registriere Fehlerbehandler
+    register_error_handlers(app)
+
+    # Konfiguriere Login-Manager
+    login_manager.login_view = 'auth.login'
+    login_manager.login_message = 'Bitte melden Sie sich an, um auf diese Seite zuzugreifen.'
+
+    @login_manager.user_loader
+    def load_user(user_id):
+        from app.models.user import User
+        return User.query.get(int(user_id))
+
+    # Event_Struktur initialisieren
+    with app.app_context():
+        initialize_event_structure()
+
+    # Debug-Routen
     @app.route('/test')
     def test_route():
         return "Test-Route funktioniert!"
 
-    # Fehlerbehandlung
-    @app.errorhandler(404)
-    def not_found_error(error):
-        app.logger.error(f"404 error: {str(error)}")
-        return render_template('404.html'), 404
-
-    @app.errorhandler(500)
-    def internal_error(error):
-        db.session.rollback()
-        app.logger.error(f"500 error: {str(error)}", exc_info=True)
-        return render_template('500.html'), 500
+    # Debug-Ausgabe der registrierten Routen
+    with app.app_context():
+        print_routes(app)
 
     app.logger.info('Dartochsen startup')
 

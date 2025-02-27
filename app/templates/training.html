@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block content %}
 <h1>Training</h1>
-<a href="{{ url_for('neues_training') }}" class="btn">Neues Training erstellen</a>
+<a href="{{ url_for('main.neues_training') }}" class="btn">Neues Training erstellen</a>
 <table id="training-table">
     <thead>
         <tr>
@@ -17,7 +17,7 @@
     </tbody>
 </table>
 
-<script src="{{ url_for('static', filename='js/realtime.js') }}"></script>
+<script src="{{ url_for('main.static', filename='js/realtime.js') }}"></script>
 <script>
     function updateTrainings(data) {
         const tableBody = document.querySelector('#training-table tbody');

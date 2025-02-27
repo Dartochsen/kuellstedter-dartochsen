@@ -1,6 +1,6 @@
 # app/models/event.py
 
-from app import db
+from app.extensions import db
 
 class Event(db.Model):
     id = db.Column(db.Integer, primary_key=True)

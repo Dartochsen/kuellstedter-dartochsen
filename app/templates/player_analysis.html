@@ -19,7 +19,7 @@
     </ul>
     {% endif %}
     
-    <a href="{{ url_for('player_performance', player_id=player.id) }}">Detaillierte Leistungsdaten anzeigen</a>
+    <a href="{{ url_for('main.player_performance', player_id=player.id) }}">Detaillierte Leistungsdaten anzeigen</a>
 </div>
 {% endfor %}
 {% endblock %}

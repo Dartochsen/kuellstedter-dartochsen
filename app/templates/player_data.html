@@ -27,7 +27,7 @@
 <h2>Spielerliste</h2>
 <ul>
     {% for player in players %}
-    <li><a href="{{ url_for('player_performance', player_id=player.id) }}">{{ player.name }}</a></li>
+    <li><a href="{{ url_for('main.player_performance', player_id=player.id) }}">{{ player.name }}</a></li>
     {% endfor %}
 </ul>
 {% endblock %}

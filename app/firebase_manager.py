@@ -1,6 +1,6 @@
 import firebase_admin
 from firebase_admin import credentials, db, messaging
-from flask import jsonify
+from flask import jsonify, current_app
 import logging
 import json
 import os
@@ -8,19 +8,32 @@ import os
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-def initialize_firebase():
+def get_firebase_config():
+    return {
+        "type": os.environ.get("FIREBASE_TYPE"),
+        "project_id": os.environ.get("FIREBASE_PROJECT_ID"),
+        "private_key_id": os.environ.get("FIREBASE_PRIVATE_KEY_ID"),
+        "private_key": os.environ.get("FIREBASE_PRIVATE_KEY").replace('\\n', '\n'),
+        "client_email": os.environ.get("FIREBASE_CLIENT_EMAIL"),
+        "client_id": os.environ.get("FIREBASE_CLIENT_ID"),
+        "auth_uri": os.environ.get("FIREBASE_AUTH_URI"),
+        "token_uri": os.environ.get("FIREBASE_TOKEN_URI"),
+        "auth_provider_x509_cert_url": os.environ.get("FIREBASE_AUTH_PROVIDER_X509_CERT_URL"),
+        "client_x509_cert_url": os.environ.get("FIREBASE_CLIENT_X509_CERT_URL")
+    }
+
+def initialize_firebase(app=None):
     if not firebase_admin._apps:
         try:
-            firebase_config = {
-                "apiKey": os.environ.get("FIREBASE_API_KEY"),
-                "authDomain": os.environ.get("FIREBASE_AUTH_DOMAIN"),
-                "projectId": os.environ.get("FIREBASE_PROJECT_ID"),
-                "storageBucket": os.environ.get("FIREBASE_STORAGE_BUCKET"),
-                "messagingSenderId": os.environ.get("FIREBASE_MESSAGING_SENDER_ID"),
-                "appId": os.environ.get("FIREBASE_APP_ID")
-            }
-            firebase_service_account = json.loads(os.environ.get('FIREBASE_SERVICE_ACCOUNT_KEY', '{}'))
-            cred = credentials.Certificate(firebase_service_account)
+            firebase_config = get_firebase_config()
+            
+            if not firebase_config:
+                raise ValueError("Firebase configuration is not available")
+
+            if 'type' not in firebase_config or firebase_config['type'] != 'service_account':
+                firebase_config['type'] = 'service_account'
+
+            cred = credentials.Certificate(firebase_config)
             firebase_admin.initialize_app(cred, {
                 'databaseURL': os.environ.get('FIREBASE_DATABASE_URL', 'https://dartochsenapp.firebaseio.com')
             })
@@ -40,19 +53,28 @@ def push_data(path, data):
         logger.error(f"Fehler beim Pushen von Daten zu {path}: {str(e)}")
         raise
 
-def get_data(path, limit=None):
+def get_data(path, limit=None, order_by=None):
     try:
         ref = db.reference(path)
+        if order_by:
+            ref = ref.order_by_child(order_by)
+        if limit:
+            ref = ref.limit_to_last(limit)
         data = ref.get()
-        logger.info(f"Daten erfolgreich von {path} abgerufen: {data}")
         
-        if limit and isinstance(data, list):
-            data = data[:limit]
+        if data is None:
+            return []
+        
+        if isinstance(data, dict):
+            data = list(data.values())
+        
+        if order_by == 'date':
+            data.sort(key=lambda x: x['date'], reverse=True)
         
         return data
     except Exception as e:
         logger.error(f"Fehler beim Abrufen von Daten von {path}: {str(e)}")
-        raise
+        return []
 
 def get_realtime_data(path):
     return db.reference(path)
@@ -133,6 +155,7 @@ def search_data(query):
     try:
         all_data = db.reference('/').get()
         results = []
+        
         for category, items in all_data.items():
             for item_id, item in items.items():
                 if isinstance(item, dict) and any(query.lower() in str(value).lower() for value in item.values()):
@@ -141,24 +164,23 @@ def search_data(query):
                         'id': item_id,
                         'data': item
                     })
+        
         logger.info(f"Suchanfrage '{query}' erfolgreich durchgeführt")
-        return results
+        
     except Exception as e:
-        logger.error(f"Fehler bei der Suchanfrage '{query}': {str(e)}")
-        raise
+         logger.error(f"Fehler bei der Suchanfrage '{query}': {str(e)}")
 
 def get_analytics_data():
     try:
-        analytics = {
-            'total_users': len(db.reference('mitglieder').get() or {}),
-            'total_tournaments': len(db.reference('turniere').get() or {}),
-            'active_discussions': len(db.reference('diskussionsforum').get() or {})
-        }
-        logger.info("Analysedaten erfolgreich abgerufen")
-        return analytics
+       analytics = {
+           'total_users': len(db.reference('mitglieder').get() or {}),
+           'total_tournaments': len(db.reference('turniere').get() or {}),
+           'active_discussions': len(db.reference('diskussionsforum').get() or {})
+       }
+       logger.info("Analysedaten erfolgreich abgerufen")
+       return analytics
     except Exception as e:
-        logger.error(f"Fehler beim Abrufen der Analysedaten: {str(e)}")
-        raise
+       logger.error(f"Fehler beim Abrufen der Analysedaten: {str(e)}")
 
 def send_push_notification(token, title, body):
     try:
@@ -186,28 +208,93 @@ def test_db_connection():
         logger.error(f"Datenbankverbindungsfehler: {str(e)}")
         return False
 
-def get_news(limit=5):
-    try:
-        news_ref = db.reference('news').order_by_child('date').limit_to_last(limit)
-        news = list(news_ref.get().values())
-        news.reverse()  # Um die neuesten zuerst zu haben
-        logger.info(f"{limit} neueste Nachrichten erfolgreich abgerufen")
-        return news
-    except Exception as e:
-        logger.error(f"Fehler beim Abrufen der Nachrichten: {str(e)}")
-        raise
+def get_event(event_id):
+    event_ref = db.reference(f'events/{event_id}')
+    return event_ref.get()
 
-def get_upcoming_events(limit=5):
-    try:
-        import datetime
-        today = datetime.datetime.now().date()
-        events_ref = db.reference('events').order_by_child('date')
-        all_events = events_ref.get()
-        upcoming_events = [event for event in all_events.values() if datetime.datetime.strptime(event['date'], '%Y-%m-%d').date() >= today]
-        upcoming_events = sorted(upcoming_events, key=lambda x: x['date'])[:limit]
-        logger.info(f"{len(upcoming_events)} bevorstehende Veranstaltungen erfolgreich abgerufen")
-        return upcoming_events
-    except Exception as e:
-        logger.error(f"Fehler beim Abrufen der bevorstehenden Veranstaltungen: {str(e)}")
-        raise
+def delete_event(event_id):
+    event_ref = db.reference(f'events/{event_id}')
+    event_ref.delete()
+    return True
 
+def update_event(event_id, updated_event):
+    event_ref = db.reference(f'events/{event_id}')
+    event_ref.update(updated_event)
+    return True
+
+def get_news_item(news_id):
+    news_ref = db.reference(f'news/{news_id}')
+    return news_ref.get()
+
+def delete_news_item(news_id):
+    news_ref = db.reference(f'news/{news_id}')
+    news_ref.delete()
+    return True
+
+def update_news_item(news_id, updated_news):
+    news_ref = db.reference(f'news/{news_id}')
+    news_ref.update(updated_news)
+    return True
+
+def register_user_for_event(user_id, event_id):
+    try:
+        # Überprüfen, ob der Benutzer bereits für das Event registriert ist
+        user_events_ref = db.reference(f'user_events/{user_id}')
+        user_events = user_events_ref.get()
+        
+        if user_events and event_id in user_events:
+            return False  # Benutzer ist bereits registriert
+        
+        # Benutzer für das Event registrieren
+        user_events_ref.update({event_id: True})
+        
+        # Teilnehmerzahl des Events erhöhen
+        event_ref = db.reference(f'events/{event_id}')
+        event_ref.update({
+            'participants': db.reference(f'events/{event_id}/participants').get() + 1
+        })
+        
+        return True
+    except Exception as e:
+        logger.error(f"Fehler bei der Registrierung des Benutzers für das Event: {str(e)}")
+        return False
+
+def initialize_event_structure():
+    events_ref = db.reference('events')
+    if not events_ref.get():
+        events_ref.set({
+            'example_event_id': {
+                'title': 'Beispiel Event',
+                'description': 'Dies ist ein Beispiel-Event',
+                'date': '2025-03-15',
+                'location': 'Küllstedt',
+                'organizerId': 'example_user_id',
+                'participants': 0
+            }
+        })
+    
+    user_events_ref = db.reference('user_events')
+    if not user_events_ref.get():
+        user_events_ref.set({
+            'example_user_id': {
+                'example_event_id': True
+            }
+        })
+
+def add_event(event_data):
+    events_ref = db.reference('events')
+    new_event_ref = events_ref.push()
+    new_event_ref.set(event_data)
+    return new_event_ref.key
+
+def get_news():
+    return get_data('news')
+
+def add_news(news_data):
+    news_ref = db.reference('news')
+    new_news_ref = news_ref.push()
+    new_news_ref.set(news_data)
+    return new_news_ref.key
+
+# Fügen Sie diese Funktion hinzu, um die Firebase-Initialisierung aufzurufen
+initialize_firebase()

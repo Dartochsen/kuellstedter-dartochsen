@@ -1,34 +1,46 @@
-print("routes.py wird geladen")
-
-from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify, abort, current_app
+from app.main import bp
+from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify, abort, current_app, session
+import time
+from werkzeug.exceptions import HTTPException
+from urllib.parse import urlparse
 from app.models import Player, ThrowData, Event
+from app.models.user import User
+from app.services.mail_service import send_password_reset_email
+from app.extensions import db, bcrypt
+from app.forms import *
 from app.services.event_management import register_user_for_event
 from app.data_collection.data_collection import collect_player_data, get_player_performance
 from app.analysis import analyze_player_data, get_recommendation
 from app.firebase_manager import (
-    push_data, get_data, get_realtime_data, create_tournament, 
+    push_data, add_news, add_event, get_data, get_realtime_data, create_tournament, 
     update_tournament, get_tournament, add_team_to_tournament, 
-    update_match_result, search_data, get_analytics_data, test_db_connection
+    update_match_result, search_data, get_analytics_data, test_db_connection, register_user_for_event, get_event, get_news, get_news_item, delete_event, delete_news_item, update_event, update_news_item
 )
 from app.chatbot import get_chatbot_response
-from flask_login import login_required, current_user
+from flask_login import login_required, login_user, current_user, logout_user
 import logging
 from datetime import datetime
 import random
+from sqlalchemy.exc import IntegrityError
 
-bp = Blueprint('main', __name__)
 logger = logging.getLogger(__name__)
+
+MAX_LOGIN_ATTEMPTS = 5
+LOCKOUT_TIME = 600  # 10 Minuten in Sekunden
 
 @bp.route('/')
 def index():
-    print("Index-Funktion wurde aufgerufen")
-    current_app.logger.info("Index-Route aufgerufen")
     try:
-        news_items = get_data('news', limit=5)
-        current_app.logger.info(f"News items: {news_items}")
-        upcoming_events = get_data('events', limit=5)
-        current_app.logger.info(f"Upcoming events: {upcoming_events}")
-        return render_template('index.html', news_items=news_items, upcoming_events=upcoming_events)
+        news_items = get_data('news', limit=5, order_by='date')
+        upcoming_events = get_data('events', limit=5, order_by='date')
+        
+        # Filtern Sie vergangene Ereignisse heraus
+        current_date = datetime.now().strftime('%Y-%m-%d')
+        upcoming_events = [event for event in upcoming_events if event['date'] >= current_date]
+
+        return render_template('index.html', 
+                               news_items=news_items, 
+                               upcoming_events=upcoming_events)
     except Exception as e:
         current_app.logger.error(f"Fehler beim Laden der Startseite: {str(e)}")
         return render_template('error.html', error="Fehler beim Laden der Startseite"), 500
@@ -43,19 +55,234 @@ def test_firebase():
         logger.error(f"Fehler beim Firebase-Test: {str(e)}")
         return 'Firebase-Test fehlgeschlagen.'
 
-@bp.route('/news')
-def news():
-    try:
-        news_items = get_data('news')
-        return render_template('news.html', news_items=news_items)
-    except Exception as e:
-        logger.error(f"Fehler beim Laden der News: {str(e)}")
-        return render_template('error.html', error="Fehler beim Laden der News"), 500
+@bp.route('/profile')
+@login_required
+def profile():
+    return render_template('profile.html', user=current_user)
+
+@bp.route('/login', methods=['GET', 'POST'])
+def login():
+    if current_user.is_authenticated:
+        return redirect(url_for('main.index'))
+    
+    form = LoginForm()
+    
+    if 'login_attempts' not in session:
+        session['login_attempts'] = 0
+    
+    if session['login_attempts'] >= MAX_LOGIN_ATTEMPTS:
+        if 'lockout_time' in session and time.time() < session['lockout_time']:
+            flash('Account gesperrt. Bitte versuchen Sie es später erneut.', 'error')
+            return render_template('login.html', title='Anmelden', form=form)
+        else:
+            session['login_attempts'] = 0
+    
+    if form.validate_on_submit():
+        user = User.query.filter_by(username=form.username.data).first()
+        if user is None or not user.check_password(form.password.data):
+            session['login_attempts'] += 1
+            if session['login_attempts'] >= MAX_LOGIN_ATTEMPTS:
+                session['lockout_time'] = time.time() + LOCKOUT_TIME
+            flash('Ungültiger Benutzername oder Passwort', 'error')
+            return redirect(url_for('main.login'))
+        
+        login_user(user, remember=form.remember_me.data)
+        session['login_attempts'] = 0
+        next_page = request.args.get('next')
+        if not next_page or urlparse(next_page).netloc != '':
+            next_page = url_for('main.index')
+        return redirect(next_page)
+    
+    return render_template('login.html', title='Anmelden', form=form)
+
+@bp.route('/logout')
+@login_required
+def logout():
+    logout_user()
+    flash('Sie wurden erfolgreich abgemeldet.')
+    return redirect(url_for('main.index'))
+
+@bp.route('/change_password', methods=['GET', 'POST'])
+@login_required
+def change_password():
+    form = ChangePasswordForm()
+    if form.validate_on_submit():
+        if current_user.check_password(form.current_password.data):
+            current_user.set_password(form.new_password.data)
+            db.session.commit()
+            flash('Ihr Passwort wurde erfolgreich geändert.', 'success')
+            return redirect(url_for('main.profile'))
+        else:
+            flash('Falsches aktuelles Passwort. Bitte versuchen Sie es erneut.', 'danger')
+    return render_template('change_password.html', form=form)
+
+@bp.route('/reset_password_request', methods=['GET', 'POST'])
+def reset_password_request():
+    if current_user.is_authenticated:
+        return redirect(url_for('main.index'))
+    form = RequestPasswordResetForm()
+    if form.validate_on_submit():
+        user = User.query.filter_by(email=form.email.data).first()
+        if user:
+            send_password_reset_email(user)
+        flash('Eine E-Mail mit Anweisungen zum Zurücksetzen Ihres Passworts wurde gesendet.', 'info')
+        return redirect(url_for('main.login'))
+    return render_template('reset_password_request.html', title='Passwort zurücksetzen', form=form)
+
+@bp.route("/reset_password/<token>", methods=['GET', 'POST'])
+def reset_token(token):
+    if current_user.is_authenticated:
+        return redirect(url_for('main.index'))
+    user = User.verify_reset_token(token)
+    if user is None:
+        flash('Das ist ein ungültiger oder abgelaufener Token', 'warning')
+        return redirect(url_for('main.reset_request'))
+    form = ResetPasswordForm()
+    if form.validate_on_submit():
+        user.set_password(form.password.data)
+        db.session.commit()
+        flash('Ihr Passwort wurde aktualisiert! Sie können sich jetzt anmelden', 'success')
+        return redirect(url_for('main.login'))
+    return render_template('reset_token.html', title='Passwort zurücksetzen', form=form)
+
+@bp.route('/register', methods=['GET', 'POST'])
+def register():
+    if current_user.is_authenticated:
+        return redirect(url_for('main.index'))
+    form = RegistrationForm()
+    if form.validate_on_submit():
+        user = User(username=form.username.data, email=form.email.data)
+        user.set_password(form.password.data)
+        db.session.add(user)
+        try:
+            db.session.commit()
+            flash('Ihr Konto wurde erfolgreich erstellt! Sie können sich jetzt anmelden.', 'success')
+            return redirect(url_for('main.login'))
+        except IntegrityError:
+            db.session.rollback()
+            flash('Ein Fehler ist aufgetreten. Bitte versuchen Sie es erneut.', 'danger')
+    return render_template('register.html', title='Registrieren', form=form)
+
+@bp.route('/edit_profile', methods=['GET', 'POST'])
+@login_required
+def edit_profile():
+    form = EditProfileForm()
+    if form.validate_on_submit():
+        current_user.username = form.username.data
+        current_user.about_me = form.about_me.data
+        db.session.commit()
+        flash('Ihre Änderungen wurden gespeichert.')
+        return redirect(url_for('main.profile'))
+    elif request.method == 'GET':
+        form.username.data = current_user.username
+        form.about_me.data = current_user.about_me
+    return render_template('edit_profile.html', title='Profil bearbeiten', form=form)
 
 @bp.route('/events')
 def events():
-    events = get_data('events')
-    return render_template('events.html', events=events)
+    events_list = get_events()
+    return render_template('events.html', title='Events', events=events_list)
+
+@bp.route('/event/<string:event_id>')
+def event_detail(event_id):
+    event = get_event(event_id)
+    if event is None:
+        abort(404)
+    return render_template('event_detail.html', title=event['title'], event=event)
+
+@bp.route('/event/<string:event_id>/delete', methods=['POST'])
+@login_required
+def delete_event_route(event_id):
+    if delete_event(event_id):
+        flash('Event erfolgreich gelöscht', 'success')
+    else:
+        flash('Fehler beim Löschen des Events', 'error')
+    return redirect(url_for('main.events'))
+
+@bp.route('/event/<string:event_id>/edit', methods=['GET', 'POST'])
+@login_required
+def edit_event(event_id):
+    event = get_event(event_id)
+    if event is None:
+        abort(404)
+    form = EditEventForm()
+    if form.validate_on_submit():
+        updated_event = {
+            'title': form.title.data,
+            'description': form.description.data,
+            'date': form.date.data.strftime('%Y-%m-%d'),
+            'location': form.location.data
+        }
+        if update_event(event_id, updated_event):
+            flash('Event erfolgreich aktualisiert', 'success')
+            return redirect(url_for('main.event_detail', event_id=event_id))
+        else:
+            flash('Fehler beim Aktualisieren des Events', 'error')
+    elif request.method == 'GET':
+        form.title.data = event['title']
+        form.description.data = event['description']
+        form.date.data = datetime.strptime(event['date'], '%Y-%m-%d')
+        form.location.data = event['location']
+    return render_template('edit_event.html', title='Event bearbeiten', form=form)
+
+@bp.route('/news')
+def news():
+    news_list = get_news()
+    return render_template('news.html', title='Neuigkeiten', news=news_list)
+
+@bp.route('/news/<string:news_id>')
+def news_detail(news_id):
+    news_item = get_news_item(news_id)
+    if news_item is None:
+        abort(404)
+    return render_template('news_detail.html', title=news_item['title'], news_item=news_item)
+
+@bp.route('/news/<string:news_id>/delete', methods=['POST'])
+@login_required
+def delete_news_route(news_id):
+    if delete_news_item(news_id):
+        flash('Neuigkeit erfolgreich gelöscht', 'success')
+    else:
+        flash('Fehler beim Löschen der Neuigkeit', 'error')
+    return redirect(url_for('main.news'))
+
+@bp.route('/news/<string:news_id>/edit', methods=['GET', 'POST'])
+@login_required
+def edit_news(news_id):
+    news_item = get_news_item(news_id)
+    if news_item is None:
+        abort(404)
+    form = EditNewsForm()
+    if form.validate_on_submit():
+        updated_news = {
+            'title': form.title.data,
+            'content': form.content.data
+        }
+        if update_news_item(news_id, updated_news):
+            flash('Neuigkeit erfolgreich aktualisiert', 'success')
+            return redirect(url_for('main.news_detail', news_id=news_id))
+        else:
+            flash('Fehler beim Aktualisieren der Neuigkeit', 'error')
+    elif request.method == 'GET':
+        form.title.data = news_item['title']
+        form.content.data = news_item['content']
+    return render_template('edit_news.html', title='Neuigkeit bearbeiten', form=form)
+
+@bp.route('/add_news', methods=['GET', 'POST'])
+@login_required
+def add_news():
+    form = AddNewsForm()
+    if form.validate_on_submit():
+        news_data = {
+            'title': form.title.data,
+            'content': form.content.data,
+            'date': datetime.now().strftime('%Y-%m-%d'),
+            'authorId': current_user.id
+        }
+        add_news(news_data)
+        flash('Neuigkeit erfolgreich hinzugefügt', 'success')
+        return redirect(url_for('main.news'))
+    return render_template('add_news.html', title='Neuigkeit hinzufügen', form=form)
 
 @bp.route('/suche')
 def suche():
@@ -316,13 +543,10 @@ def send_notification():
 @login_required
 def test_db():
     try:
-        if test_db_connection():
-            return "Datenbankverbindung erfolgreich!"
-        else:
-            raise Exception("Datenbankverbindung fehlgeschlagen")
+        db.session.execute('SELECT 1')
+        return 'Datenbankverbindung erfolgreich!'
     except Exception as e:
-        logger.error("Fehler bei der Datenbankverbindung: %s", str(e))
-        return "Fehler bei der Datenbankverbindung", 500
+        return f'Datenbankfehler: {str(e)}'
 
 @bp.route('/chatbot', methods=['POST'])
 def chatbot():
@@ -384,6 +608,40 @@ def add_throw_data():
         logger.error("Fehler beim Hinzufügen von Wurfdaten: %s", str(e))
         return jsonify({"error": str(e)}), 400
 
+@bp.route('/register-event', methods=['POST'])
+@login_required
+def register_event():
+    event_id = request.json.get('eventId')
+    if not event_id:
+        return jsonify({'success': False, 'message': 'Keine Event-ID angegeben'}), 400
+    
+    try:
+        success = register_user_for_event(current_user.id, event_id)
+        if success:
+            return jsonify({'success': True, 'message': 'Erfolgreich für das Event angemeldet'})
+        else:
+            return jsonify({'success': False, 'message': 'Anmeldung fehlgeschlagen'}), 400
+    except Exception as e:
+        current_app.logger.error(f"Fehler bei der Event-Registrierung: {str(e)}")
+        return jsonify({'success': False, 'message': 'Ein Fehler ist aufgetreten'}), 500
+
+@bp.route('/add_event', methods=['GET', 'POST'])
+@login_required
+def add_event():
+    form = AddEventForm()
+    if form.validate_on_submit():
+        event_data = {
+            'title': form.title.data,
+            'description': form.description.data,
+            'date': form.date.data.strftime('%Y-%m-%d'),
+            'location': form.location.data,
+            'organizerId': current_user.id
+        }
+        add_event(event_data)
+        flash('Event erfolgreich hinzugefügt', 'success')
+        return redirect(url_for('main.events'))
+    return render_template('add_event.html', title='Event hinzufügen', form=form)
+
 # Fehlerbehandlung
 @bp.errorhandler(404)
 def page_not_found(error):
@@ -406,17 +664,9 @@ def handle_exception(error):
 def simulate_error(error_code):
     abort(error_code)
 
-@bp.route('/register-event', methods=['POST'])
-@login_required
-def register_event():
-    event_id = request.json.get('eventId')
-    try:
-        success, message = register_user_for_event(current_user.id, event_id)
-        return jsonify({'success': success, 'message': message})
-    except Exception as e:
-        logger.error(f"Fehler bei der Event-Registrierung: {str(e)}")
-        return jsonify({'success': False, 'message': 'Ein Fehler ist aufgetreten'}), 500
-
 @bp.route('/test-blueprint')
 def test_blueprint():
     return "Blueprint Test Route"
+
+# Debug-Ausgabe der registrierten Routen
+print(f"Routen in main/routes.py: {[f.__name__ for f in bp.deferred_functions if callable(f)]}")

@@ -1,6 +1,6 @@
 from datetime import datetime
 from app.models import Player, ThrowData
-from app import db
+from app.extensions import db
 
 def collect_player_data(player_id, performance_metrics):
     data = {

@@ -12,7 +12,7 @@
                             <strong>{{ key }}:</strong> {{ value }}<br>
                         {% endfor %}
                     </p>
-                    <a href="{{ url_for(result.category, id=result.id) }}" class="btn btn-primary">Details</a>
+                    <a href="{{ url_for(main.result.category, id=result.id) }}" class="btn btn-primary">Details</a>
                 </div>
             </div>
         {% endfor %}

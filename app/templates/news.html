@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+
+{% block content %}
+    <h1>Neuigkeiten</h1>
+    {% if news %}
+        {% for item in news %}
+            <div class="card mb-3">
+                <div class="card-body">
+                    <h5 class="card-title">
+                        <a href="{{ url_for('main.news_detail', news_id=item.id) }}">{{ item.title }}</a>
+                    </h5>
+                    <h6 class="card-subtitle mb-2 text-muted">{{ item.date }}</h6>
+                    <p class="card-text">{{ item.content|truncate(100) }}</p>
+                </div>
+            </div>
+        {% endfor %}
+
+    {% else %}
+        <p>Keine Neuigkeiten vorhanden.</p>
+    {% endif %}
+    
+    {% if current_user.is_authenticated %}
+        <a href="{{ url_for('main.add_news') }}" class="btn btn-primary">Neue Neuigkeit hinzufügen</a>
+    {% endif %}
+{% endblock %}

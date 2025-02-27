@@ -33,7 +33,7 @@
             <tbody>
             {% for mitglied in mitglieder %}
                 <tr>
-                    <td><a href="{{ url_for('mitglied_profil', mitglied_id=mitglied.id) }}">{{ mitglied.name }}</a></td>
+                    <td><a href="{{ url_for('main.mitglied_profil', mitglied_id=mitglied.id) }}">{{ mitglied.name }}</a></td>
                     <td>{{ mitglied.email }}</td>
                     <td>{{ mitglied.team }}</td>
                     <td>{{ mitglied.status }}</td>
@@ -52,7 +52,7 @@
         <div class="card">
             <div class="card-body">
                 <h5 class="card-title">Neues Mitglied hinzufügen</h5>
-                <form method="POST" action="{{ url_for('neues_mitglied') }}">
+                <form method="POST" action="{{ url_for('main.neues_mitglied') }}">
                     <div class="mb-3">
                         <label for="name" class="form-label">Name</label>
                         <input type="text" class="form-control" id="name" name="name" required>

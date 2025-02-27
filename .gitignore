@@ -175,3 +175,8 @@ instance/config/firebase_config.py
 instance/config/serviceAccountKey.json
 instance/config/firebase_config.py
 instance/config/serviceAccountKey.json
+
+# Zusätzliche Einträge für Firebase und sensible Daten
+.env
+instance/config/firebase_config.py
+instance/config/serviceAccountKey.json

@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+
+{% block title %}Profil von {{ user.username }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h1 class="mb-4">Benutzerprofil</h1>
+    <div class="card">
+        <div class="card-body">
+            <h2 class="card-title">{{ user.username }}</h2>
+            <div class="profile-info">
+                <p><strong>E-Mail:</strong> {{ user.email }}</p>
+                {% if user.about_me %}
+                    <p><strong>Über mich:</strong> {{ user.about_me }}</p>
+                {% endif %}
+                <p><strong>Mitglied seit:</strong> {{ user.created_at.strftime('%d.%m.%Y') }}</p>
+                <!-- Fügen Sie hier weitere Profilinformationen hinzu -->
+            </div>
+        </div>
+    </div>
+    
+    <div class="mt-4">
+        <a href="{{ url_for('main.edit_profile') }}" class="btn btn-primary">Profil bearbeiten</a>
+        <a href="{{ url_for('main.change_password') }}" class="btn btn-secondary">Passwort ändern</a>
+    </div>
+
+    {% if user == current_user %}
+    <div class="mt-4">
+        <h3>Meine Aktivitäten</h3>
+        <!-- Hier können Sie zusätzliche Abschnitte für Benutzeraktivitäten hinzufügen -->
+        <p>Hier könnten Informationen über Ihre letzten Aktivitäten, Turnierteilnahmen, etc. angezeigt werden.</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

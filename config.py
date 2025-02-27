@@ -28,12 +28,20 @@ class Config:
     # Logging
     LOG_TO_STDOUT = os.environ.get('LOG_TO_STDOUT')
 
+    # HTTPS Konfiguration
+    PREFERRED_URL_SCHEME = 'https'
+    SESSION_COOKIE_SECURE = True
+    REMEMBER_COOKIE_SECURE = True
+
     @staticmethod
     def init_app(app):
         pass
 
 class DevelopmentConfig(Config):
     DEBUG = True
+    # In der Entwicklungsumgebung können wir HTTPS deaktivieren
+    SESSION_COOKIE_SECURE = False
+    REMEMBER_COOKIE_SECURE = False
 
 class ProductionConfig(Config):
     DEBUG = False
@@ -52,6 +60,9 @@ class ProductionConfig(Config):
 class TestingConfig(Config):
     TESTING = True
     SQLALCHEMY_DATABASE_URI = 'sqlite://'
+    # In der Testumgebung können wir HTTPS deaktivieren
+    SESSION_COOKIE_SECURE = False
+    REMEMBER_COOKIE_SECURE = False
 
 config = {
     'development': DevelopmentConfig,

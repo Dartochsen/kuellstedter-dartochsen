@@ -1,12 +1,12 @@
 {% extends "base.html" %}
 {% block content %}
 <h1>Marktplatz</h1>
-<a href="{{ url_for('neues_angebot') }}" class="btn">Neues Angebot erstellen</a>
+<a href="{{ url_for('main.neues_angebot') }}" class="btn">Neues Angebot erstellen</a>
 <div id="angebote-container" class="angebote-grid">
     <!-- Angebote werden hier dynamisch eingefügt -->
 </div>
 
-<script src="{{ url_for('static', filename='js/realtime.js') }}"></script>
+<script src="{{ url_for('main.static', filename='js/realtime.js') }}"></script>
 <script>
     function updateAngebote(data) {
         const container = document.getElementById('angebote-container');

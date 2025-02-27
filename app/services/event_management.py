@@ -1,6 +1,6 @@
 from app.models.event import Event
 from app.models import User
-from app import db
+from app.extensions import db
 from app.models import Event
 
 def register_user_for_event(user_id, event_id):

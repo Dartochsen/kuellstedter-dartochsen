@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <h1>{{ event.title }}</h1>
+    <p><strong>Datum:</strong> {{ event.date }}</p>
+    <p><strong>Ort:</strong> {{ event.location }}</p>
+    <p><strong>Beschreibung:</strong></p>
+    <p>{{ event.description }}</p>
+    
+    {% if current_user.is_authenticated %}
+        <div class="mt-4">
+            <a href="{{ url_for('main.edit_event', event_id=event.id) }}" class="btn btn-primary">Event bearbeiten</a>
+            <form action="{{ url_for('main.delete_event_route', event_id=event.id) }}" method="post" class="d-inline">
+                <input type="submit" value="Event löschen" class="btn btn-danger" onclick="return confirm('Sind Sie sicher, dass Sie dieses Event löschen möchten?');">
+            </form>
+        </div>
+    {% endif %}
+    
+    <a href="{{ url_for('main.events') }}" class="btn btn-secondary mt-3">Zurück zur Übersicht</a>
+</div>
+{% endblock %}
