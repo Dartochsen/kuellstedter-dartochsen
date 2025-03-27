@@ -1,9 +1,12 @@
 import os
+import pymysql
+pymysql.install_as_MySQLdb()
 from flask import Flask, jsonify, render_template, request, g
 from flask_login import LoginManager
 from flask_migrate import Migrate
 from flask_limiter import Limiter
 from flask_socketio import SocketIO
+from flask_sqlalchemy import SQLAlchemy
 from flask_limiter.util import get_remote_address
 from flask_caching import Cache
 from celery import Celery
@@ -19,25 +22,22 @@ from dotenv import load_dotenv
 # Laden der Umgebungsvariablen aus .env und .flaskenv
 load_dotenv()
 
-# Initialisierung des Login-Managers
+# Initialisierung von Erweiterungen
 login_manager = LoginManager()
+migrate = Migrate()
+cache = Cache(config={'CACHE_TYPE': 'SimpleCache'})
+limiter = Limiter(key_func=get_remote_address, storage_uri="redis://localhost:6379")
+
+# Konfiguration des Login-Managers
 login_manager.login_view = 'auth.login'
 login_manager.login_message = 'Bitte melden Sie sich an, um diese Seite zu sehen.'
-
-# Initialisierung von Flask-Migrate
-migrate = Migrate()
-
-# Initialisierung von Flask-Caching
-cache = Cache(config={'CACHE_TYPE': 'SimpleCache'})
-
-# Initialisierung von Flask-Limiter mit Redis als Speicher
-limiter = Limiter(key_func=get_remote_address, storage_uri="redis://localhost:6379")
 
 @login_manager.user_loader
 def load_user(user_id):
     return User.query.get(int(user_id))
 
 def make_celery(app):
+    """Initialisiert Celery mit Flask-Kontext."""
     celery = Celery(
         app.import_name,
         backend=app.config['CELERY_RESULT_BACKEND'],
@@ -54,6 +54,7 @@ def make_celery(app):
     return celery
 
 def configure_logging(app):
+    """Konfiguriert das Logging für die Anwendung."""
     os.makedirs('logs', exist_ok=True)
     file_handler = RotatingFileHandler('logs/dartochsen.log', maxBytes=10240, backupCount=10)
     file_handler.setFormatter(logging.Formatter(
@@ -66,11 +67,13 @@ def configure_logging(app):
     app.logger.info('Dartochsen startup')
 
 class CustomError(Exception):
+    """Benutzerdefinierte Fehlerklasse."""
     def __init__(self, message, status_code):
         self.message = message
         self.status_code = status_code
 
 def register_error_handlers(app):
+    """Registriert Fehlerbehandlungsroutinen für die Anwendung."""
     @app.errorhandler(404)
     def not_found_error(error):
         if request.accept_mimetypes.accept_json and not request.accept_mimetypes.accept_html:
@@ -103,6 +106,7 @@ def register_error_handlers(app):
         return render_template('500.html'), 500
 
 def create_default_roles(app):
+    """Erstellt Standardrollen in der Datenbank."""
     with app.app_context():
         default_roles = ['user', 'admin', 'trainer']
         for role_name in default_roles:
@@ -113,23 +117,29 @@ def create_default_roles(app):
         db.session.commit()
 
 def create_app(config_name='default'):
+    """Erstellt und konfiguriert die Flask-Anwendung."""
     app = Flask(__name__)
 
     # Laden der Konfigurationen
     app.config.from_object(config[config_name])
     config[config_name].init_app(app)
 
-    # Laden zusätzlicher Umgebungsvariablen aus .env
+    # Laden zusätzlicher Umgebungsvariablen aus .env-Dateien
     app.config.from_prefixed_env()
 
-    configure_logging(app)
+    # Setzen der Datenbankverbindungs-URL
+    app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://myuser:mypassword@myuser.mysql.pythonanywhere-services.com/myuser$default'
 
+    # Initialisierung der App-Erweiterungen und Konfigurationen
+    configure_logging(app)
+    
     init_extensions(app)
     login_manager.init_app(app)
     migrate.init_app(app, db)
     limiter.init_app(app)
     cache.init_app(app)
 
+    # Initialisierung von Celery und Hinzufügen zur App-Instanz
     celery = make_celery(app)
     app.extensions['celery'] = celery
 
@@ -147,22 +157,11 @@ def create_app(config_name='default'):
         app.register_blueprint(api_bp, url_prefix='/api')
         app.register_blueprint(questions_bp, url_prefix='/questions')
 
-        # Übergeben Sie die app-Instanz an die Blueprints
-        main_bp.app = app
-        auth_bp.app = app
-        admin_bp.app = app
-        api_bp.app = app
-        questions_bp.app = app
-
-        # Import der Turnier-Routen
-        from app.main import tournament_routes
-
-        # Erstellen Sie die Standardrollen
+        # Erstellen Sie die Standardrollen in der Datenbank
         create_default_roles(app)
 
     @app.before_request
     def before_request():
-        print("Before request is called")  # Temporäres Print-Statement für Debugging
         g.app = app
 
     @app.after_request
@@ -171,18 +170,19 @@ def create_app(config_name='default'):
         return response
 
     if app.debug:
-        app.logger.debug("Alle registrierten Routen nach Blueprint-Registrierung:")
         for rule in app.url_map.iter_rules():
             app.logger.debug(f"{rule.endpoint}: {rule.rule}")
 
+    # Registrierung von Fehlerhandlern
     register_error_handlers(app)
 
+    # Beispielroute mit Caching für Testzwecke
     @app.route('/test')
-    @cache.cached(timeout=300)  # Cache für 5 Minuten
+    @cache.cached(timeout=300)  # Cache für 5 Minuten aktivieren.
     def test():
-        app.logger.info('Test Route wurde aufgerufen')
         return 'Test Route funktioniert'
 
+    # Debug-Informationen im Template verfügbar machen.
     @app.context_processor
     def inject_debug():
         return dict(debug=app.debug)
