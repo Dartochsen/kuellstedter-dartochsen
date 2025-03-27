@@ -1,23 +1,27 @@
 {% extends "base.html" %}
 
 {% block content %}
-    <h1>Profil bearbeiten</h1>
-    <form action="" method="post">
+<div class="container mt-4">
+    <h1 class="mb-4">Profil bearbeiten</h1>
+    <form action="" method="post" novalidate>
         {{ form.hidden_tag() }}
-        <p>
-            {{ form.username.label }}<br>
-            {{ form.username(size=32) }}<br>
+        <div class="mb-3">
+            {{ form.username.label(class="form-label") }}
+            {{ form.username(class="form-control", size=32, autocomplete="username", required=true, minlength=3, maxlength=64) }}
+            <div class="form-text">Der Benutzername darf nur Buchstaben, Zahlen, Punkte oder Unterstriche enthalten.</div>
             {% for error in form.username.errors %}
-            <span style="color: red;">[{{ error }}]</span>
+                <div class="invalid-feedback d-block">{{ error }}</div>
             {% endfor %}
-        </p>
-        <p>
-            {{ form.about_me.label }}<br>
-            {{ form.about_me(cols=50, rows=4) }}<br>
+        </div>
+        <div class="mb-3">
+            {{ form.about_me.label(class="form-label") }}
+            {{ form.about_me(class="form-control", rows=4) }}
+            <div class="form-text">Maximal 140 Zeichen.</div>
             {% for error in form.about_me.errors %}
-            <span style="color: red;">[{{ error }}]</span>
+                <div class="invalid-feedback d-block">{{ error }}</div>
             {% endfor %}
-        </p>
-        <p>{{ form.submit() }}</p>
+        </div>
+        {{ form.submit(class="btn btn-primary") }}
     </form>
+</div>
 {% endblock %}

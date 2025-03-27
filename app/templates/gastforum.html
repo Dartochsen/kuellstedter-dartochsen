@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+
+{% block title %}Gastforum{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h1 class="mb-4">Willkommen im Gastforum</h1>
+    
+    <p class="lead">
+        Hier können Gäste und Nicht-Mitglieder Diskussionen verfolgen und an öffentlichen Gesprächen teilnehmen.
+    </p>
+
+    <div class="alert alert-info" role="alert">
+        <h4 class="alert-heading">Hinweis für Gäste</h4>
+        <p>Als Gast können Sie alle öffentlichen Themen lesen. Um neue Themen zu erstellen oder zu antworten, 
+        <a href="{{ url_for('auth.register') }}" class="alert-link">registrieren</a> Sie sich bitte oder 
+        <a href="{{ url_for('auth.login') }}" class="alert-link">melden</a> Sie sich an, wenn Sie bereits ein Konto haben.</p>
+    </div>
+
+    <table id="gastforum-table" class="table table-striped">
+        <thead>
+            <tr>
+                <th>Titel</th>
+                <th>Autor</th>
+                <th>Datum</th>
+                <th>Antworten</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for thema in gastforum_themen %}
+            <tr>
+                <td><a href="{{ url_for('main.gastforum_thema', thema_id=thema.id) }}">{{ thema.titel }}</a></td>
+                <td>{{ thema.autor.username }}</td>
+                <td>{{ thema.erstellungsdatum.strftime('%d.%m.%Y %H:%M') }}</td>
+                <td>{{ thema.antworten|length }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    {% if not gastforum_themen %}
+        <p class="text-muted">Derzeit sind keine öffentlichen Themen verfügbar.</p>
+    {% endif %}
+</div>
+
+<script src="{{ url_for('static', filename='js/realtime.js') }}"></script>
+<script>
+    function updateGastforumThemen(data) {
+        const tableBody = document.querySelector('#gastforum-table tbody');
+        tableBody.innerHTML = '';
+        for (const [key, thema] of Object.entries(data)) {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td><a href="{{ url_for('main.gastforum') }}/${key}">${thema.titel}</a></td>
+                <td>${thema.autor}</td>
+                <td>${new Date(thema.erstellungsdatum).toLocaleString()}</td>
+                <td>${thema.antworten ? thema.antworten.length : 0}</td>
+            `;
+            tableBody.appendChild(row);
+        }
+    }
+
+    setupRealtimeUpdates('gastforum_themen', updateGastforumThemen);
+</script>
+{% endblock %}

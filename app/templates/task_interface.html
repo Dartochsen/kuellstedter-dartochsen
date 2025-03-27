@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h1>Task Interface</h1>
+<button id="runTaskBtn">Run Long Task</button>
+<button id="addNumbersBtn">Add Numbers</button>
+<div id="result"></div>
+
+<script>
+document.getElementById('runTaskBtn').addEventListener('click', function() {
+    fetch('/run_task', {method: 'POST'})
+        .then(response => response.json())
+        .then(data => checkTaskStatus(data.task_id));
+});
+
+document.getElementById('addNumbersBtn').addEventListener('click', function() {
+    fetch('/add/5/3')
+        .then(response => response.json())
+        .then(data => checkTaskStatus(data.task_id));
+});
+
+function checkTaskStatus(taskId) {
+    fetch('/task_status/' + taskId)
+        .then(response => response.json())
+        .then(data => {
+            document.getElementById('result').innerHTML = 'Task status: ' + data.state;
+            if (data.state != 'SUCCESS' && data.state != 'FAILURE') {
+                setTimeout(() => checkTaskStatus(taskId), 1000);
+            }
+        });
+}
+</script>
+{% endblock %}

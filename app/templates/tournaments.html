@@ -1,103 +1,198 @@
 {% extends "base.html" %}
+
+{% block title %}Turnierübersicht - Küllstedter Dartochsen{% endblock %}
+
 {% block content %}
-<div class="row">
-    <div class="col-md-8">
-        <h1 class="mb-4">Turniere</h1>
-        <table class="table table-striped">
-            <thead>
-                <tr>
-                    <th>Name</th>
-                    <th>Datum</th>
-                    <th>Ort</th>
-                    <th>Modus</th>
-                    <th>Aktionen</th>
-                </tr>
-            </thead>
-            <tbody id="turniere-liste">
-                {% for turnier in turniere %}
-                <tr>
-                    <td>{{ turnier.name }}</td>
-                    <td>{{ turnier.datum }}</td>
-                    <td>{{ turnier.ort }}</td>
-                    <td>{{ turnier.modus }}</td>
-                    <td>
-                        <a href="{{ url_for('main.turnier_details', turnier_id=turnier.id) }}" class="btn btn-sm btn-info">Details</a>
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+<div class="container">
+    <div class="row">
+        <div class="col-12">
+            <h1 class="mb-4">Turnierübersicht</h1>
+        </div>
     </div>
-    <div class="col-md-4">
-        <div class="card">
-            <div class="card-body">
-                <h5 class="card-title">Neues Turnier erstellen</h5>
-                <form id="neues-turnier-form">
-                    <div class="mb-3">
-                        <label for="name" class="form-label">Name</label>
-                        <input type="text" class="form-control" id="name" name="name" required>
-                    </div>
-                    <div class="mb-3">
-                        <label for="datum" class="form-label">Datum</label>
-                        <input type="date" class="form-control" id="datum" name="datum" required>
-                    </div>
-                    <div class="mb-3">
-                        <label for="ort" class="form-label">Ort</label>
-                        <input type="text" class="form-control" id="ort" name="ort" required>
-                    </div>
-                    <div class="mb-3">
-                        <label for="modus" class="form-label">Turniermodus</label>
-                        <select class="form-select" id="modus" name="modus" required>
-                            <option value="Einfaches K.O.-System">Einfaches K.O.-System</option>
-                            <option value="Doppel-K.O.-System">Doppel-K.O.-System</option>
-                            <option value="Gruppenphase">Gruppenphase</option>
-                            <option value="Schweizer System">Schweizer System</option>
-                        </select>
-                    </div>
-                    <button type="submit" class="btn btn-primary">Turnier erstellen</button>
-                </form>
+
+    <div class="row">
+        <div class="col-lg-8">
+            <h2>Kommende Turniere</h2>
+            <div class="table-responsive">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Datum</th>
+                            <th>Ort</th>
+                            <th>Modus</th>
+                            <th>Aktionen</th>
+                        </tr>
+                    </thead>
+                    <tbody id="turniere-liste">
+                        {% for turnier in turniere %}
+                        <tr>
+                            <td>{{ turnier.name }}</td>
+                            <td>{{ turnier.date.strftime('%d.%m.%Y') }}</td>
+                            <td>{{ turnier.location }}</td>
+                            <td>{{ turnier.format }}</td>
+                            <td>
+                                <a href="{{ url_for('tournaments.get_tournament', id=turnier.id) }}" class="btn btn-sm btn-info">Details</a>
+                                {% if current_user.is_authenticated %}
+                                    <button onclick="registerForTournament('{{ turnier.id }}')" class="btn btn-sm btn-outline-primary">Teilnehmen</button>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
             </div>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="card mb-4">
+                <div class="card-body">
+                    <h5 class="card-title">Neues Turnier erstellen</h5>
+                    <form id="neues-turnier-form" method="POST" action="{{ url_for('tournaments.create_tournament') }}">
+                        <div class="mb-3">
+                            <label for="name" class="form-label">Name</label>
+                            <input type="text" class="form-control" id="name" name="name" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="date" class="form-label">Datum</label>
+                            <input type="date" class="form-control" id="date" name="date" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="location" class="form-label">Ort</label>
+                            <input type="text" class="form-control" id="location" name="location" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="format" class="form-label">Turniermodus</label>
+                            <select class="form-select" id="format" name="format" required>
+                                <option value="" disabled selected>Wählen Sie einen Modus</option>
+                                <option value="Einfaches K.O.-System">Einfaches K.O.-System</option>
+                                <option value="Doppel-K.O.-System">Doppel-K.O.-System</option>
+                                <option value="Gruppenphase">Gruppenphase</option>
+                                <option value="Schweizer System">Schweizer System</option>
+                            </select>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Turnier erstellen</button>
+                    </form>
+                </div>
+            </div>
+
+            {% if tournament_rankings %}
+                <h2>Turnierrangliste</h2>
+                <ul class="list-group mb-4" id="tournament-rankings">
+                    {% for ranking in tournament_rankings %}
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        {{ ranking.player_name }}
+                        <span class="badge bg-primary rounded-pill">{{ ranking.points }}</span>
+                    </li>
+                    {% endfor %}
+                </ul>
+            {% else %}
+                <p>Keine Ranglistendaten verfügbar.</p>
+            {% endif %}
+
+            {% if past_tournaments %}
+                <h2>Vergangene Turniere</h2>
+                <ul class="list-group" id="past-tournaments">
+                    {% for tournament in past_tournaments %}
+                    <li class="list-group-item">
+                        {{ tournament.name }}
+                        (<small>{{ tournament.date.strftime('%d.%m.%Y') }}</small>)
+                        <a href="{{ url_for('tournaments.get_results', id=tournament.id) }}" 
+                           class="btn btn-sm btn-outline-secondary">Ergebnisse ansehen</a>
+                    </li>
+                    {% endfor %}
+                </ul>
+            {% else %}
+                <p>Keine vergangenen Turniere verfügbar.</p>
+            {% endif %}
         </div>
     </div>
 </div>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
 <script>
-document.getElementById('neues-turnier-form').addEventListener('submit', function(e) {
-    e.preventDefault();
-    const formData = new FormData(this);
-    fetch('{{ url_for("main.neues_turnier") }}', {
-        method: 'POST',
-        body: formData
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            alert('Turnier erfolgreich erstellt!');
-            location.reload();
-        } else {
-            alert('Fehler beim Erstellen des Turniers.');
-        }
-    });
-});
+    var socket = io();
 
-function updateTurniere(data) {
-    const tableBody = document.getElementById('turniere-liste');
-    tableBody.innerHTML = '';
-    for (const [key, turnier] of Object.entries(data)) {
-        const row = document.createElement('tr');
-        row.innerHTML = `
-            <td>${turnier.name}</td>
-            <td>${turnier.datum}</td>
-            <td>${turnier.ort}</td>
-            <td>${turnier.modus}</td>
+    socket.on('connect', function() {
+        console.log('WebSocket verbunden');
+    });
+
+    socket.on('tournament_update', function(data) {
+        updateTournamentList(data);
+    });
+
+    socket.on('new_participant', function(data) {
+        updateParticipantList(data.tournament_id, data.user_id);
+    });
+
+    socket.on('match_update', function(data) {
+        updateMatchResult(data.match_id, data.result);
+    });
+
+    function updateTournamentList(tournament) {
+        var tournamentList = document.getElementById('turniere-liste');
+        var newRow = document.createElement('tr');
+        newRow.innerHTML = `
+            <td>${tournament.name}</td>
+            <td>${new Date(tournament.date).toLocaleDateString()}</td>
+            <td>${tournament.location}</td>
+            <td>${tournament.format}</td>
             <td>
-                <a href="/turnier/${key}" class="btn btn-sm btn-info">Details</a>
+                <a href="/tournaments/${tournament.id}" class="btn btn-sm btn-info">Details</a>
+                <button onclick="registerForTournament('${tournament.id}')" class="btn btn-sm btn-outline-primary">Teilnehmen</button>
             </td>
         `;
-        tableBody.appendChild(row);
+        tournamentList.appendChild(newRow);
     }
-}
 
-setupRealtimeUpdates('turniere', updateTurniere);
+    function updateParticipantList(tournamentId, userId) {
+        // Implementieren Sie hier die Logik zum Aktualisieren der Teilnehmerliste
+        console.log(`Neuer Teilnehmer (${userId}) für Turnier ${tournamentId}`);
+    }
+
+    function updateMatchResult(matchId, result) {
+        // Implementieren Sie hier die Logik zum Aktualisieren des Matchergebnisses
+        console.log(`Match ${matchId} Ergebnis aktualisiert:`, result);
+    }
+
+    function registerForTournament(tournamentId) {
+        fetch('{{ url_for("tournaments.register_for_tournament", id=0) }}'.replace('0', tournamentId), {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ tournament_id: tournamentId })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('Erfolgreich für das Turnier angemeldet!');
+                location.reload();
+            } else {
+                alert('Fehler bei der Anmeldung: ' + data.message);
+            }
+        })
+        .catch(error => console.error('Fehler:', error));
+    }
+
+    document.getElementById('neues-turnier-form').addEventListener('submit', function(e) {
+        e.preventDefault();
+        var formData = new FormData(this);
+        fetch('{{ url_for("tournaments.create_tournament") }}', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.id) {
+                alert('Turnier erfolgreich erstellt!');
+                updateTournamentList(data);
+                this.reset();
+            } else {
+                alert('Fehler beim Erstellen des Turniers.');
+            }
+        })
+        .catch(error => console.error('Fehler:', error));
+    });
 </script>
 {% endblock %}

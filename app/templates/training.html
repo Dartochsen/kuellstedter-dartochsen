@@ -1,40 +1,56 @@
-{% extends "base.html" %}
+{% extends 'base.html' %}
+
+{% block title %}Training - Küllstedter Dartochsen{% endblock %}
+
 {% block content %}
-<h1>Training</h1>
-<a href="{{ url_for('main.neues_training') }}" class="btn">Neues Training erstellen</a>
-<table id="training-table">
-    <thead>
-        <tr>
-            <th>Datum</th>
-            <th>Uhrzeit</th>
-            <th>Dauer</th>
-            <th>Thema</th>
-            <th>Trainer</th>
-        </tr>
-    </thead>
-    <tbody>
-        <!-- Trainingseinheiten werden hier dynamisch eingefügt -->
-    </tbody>
-</table>
-
-<script src="{{ url_for('main.static', filename='js/realtime.js') }}"></script>
-<script>
-    function updateTrainings(data) {
-        const tableBody = document.querySelector('#training-table tbody');
-        tableBody.innerHTML = '';
-        for (const [key, training] of Object.entries(data)) {
-            const row = document.createElement('tr');
-            row.innerHTML = `
-                <td>${training.datum}</td>
-                <td>${training.uhrzeit}</td>
-                <td>${training.dauer}</td>
-                <td>${training.thema}</td>
-                <td>${training.trainer}</td>
-            `;
-            tableBody.appendChild(row);
-        }
-    }
-
-    setupRealtimeUpdates('trainings', updateTrainings);
-</script>
+<div class="container">
+    <h1 class="mt-4 mb-4">Trainingsbereich</h1>
+    
+    <div class="row">
+        <div class="col-md-6">
+            <h2>Nächste Trainingstermine</h2>
+            <ul class="list-group">
+                {% for session in upcoming_sessions %}
+                <li class="list-group-item">
+                    {{ session.date.strftime('%d.%m.%Y') }} - {{ session.time }}
+                    <span class="badge bg-primary float-end">{{ session.trainer.username }}</span>
+                    <p>{{ session.description }}</p>
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
+        
+        <div class="col-md-6">
+            <h2>Neues Training planen</h2>
+            {% if current_user.is_trainer %}
+            <form method="POST">
+                {{ form.hidden_tag() }}
+                <div class="mb-3">
+                    <label for="date" class="form-label">Datum</label>
+                    <input type="date" class="form-control" id="date" name="date" required>
+                </div>
+                <div class="mb-3">
+                    <label for="time" class="form-label">Uhrzeit</label>
+                    <input type="time" class="form-control" id="time" name="time" required>
+                </div>
+                <div class="mb-3">
+                    <label for="trainer_id" class="form-label">Trainer</label>
+                    <select class="form-control" id="trainer_id" name="trainer_id" required>
+                        {% for trainer in trainers %}
+                        <option value="{{ trainer.id }}" {% if trainer.id == current_user.id %}selected{% endif %}>{{ trainer.username }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label for="description" class="form-label">Beschreibung</label>
+                    <textarea class="form-control" id="description" name="description" rows="3"></textarea>
+                </div>
+                <button type="submit" class="btn btn-primary">Training planen</button>
+            </form>
+            {% else %}
+            <p>Sie müssen ein Trainer sein, um ein neues Training zu planen.</p>
+            {% endif %}
+        </div>
+    </div>
+</div>
 {% endblock %}

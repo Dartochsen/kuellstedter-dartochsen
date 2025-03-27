@@ -39,3 +39,20 @@ def get_event_details(event_id):
         "current_participants": event.current_participants,
         "max_participants": event.max_participants
     }
+
+def generate_knockout_matches(teams):
+    matches = []
+    num_teams = len(teams)
+    num_rounds = (num_teams - 1).bit_length()
+    
+    for round in range(num_rounds):
+        round_matches = []
+        num_matches = 2 ** (num_rounds - round - 1)
+        for match in range(num_matches):
+            if round == 0 and match < num_teams // 2:
+                round_matches.append([teams[match * 2], teams[match * 2 + 1]])
+            else:
+                round_matches.append([None, None])
+        matches.append(round_matches)
+    
+    return matches

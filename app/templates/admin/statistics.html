@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h1>Website-Statistiken</h1>
+<div class="statistics">
+    <div class="stat-item">
+        <h2>Benutzer</h2>
+        <p>Gesamtanzahl: {{ total_users }}</p>
+        <p>Neue Benutzer (letzte 30 Tage): {{ new_users_last_30_days }}</p>
+    </div>
+    <div class="stat-item">
+        <h2>Events</h2>
+        <p>Gesamtanzahl: {{ total_events }}</p>
+        <p>Aktive Events: {{ active_events }}</p>
+    </div>
+    <div class="stat-item">
+        <h2>Seitenaufrufe</h2>
+        <p>Gesamt: {{ total_page_views }}</p>
+        <p>Durchschnitt pro Tag: {{ avg_daily_views }}</p>
+    </div>
+    <div class="stat-item">
+        <h2>Beliebteste Seiten</h2>
+        <ol>
+        {% for page in popular_pages %}
+            <li>{{ page.url }} ({{ page.views }} Aufrufe)</li>
+        {% endfor %}
+        </ol>
+    </div>
+</div>
+{% endblock %}

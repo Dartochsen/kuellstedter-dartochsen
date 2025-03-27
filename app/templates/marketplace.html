@@ -6,7 +6,7 @@
     <!-- Angebote werden hier dynamisch eingefügt -->
 </div>
 
-<script src="{{ url_for('main.static', filename='js/realtime.js') }}"></script>
+<script src="{{ url_for('static', filename='js/realtime.js') }}"></script>
 <script>
     function updateAngebote(data) {
         const container = document.getElementById('angebote-container');

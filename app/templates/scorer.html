@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="scorer-container">
+    <h1>Dart Scorer</h1>
+    <div class="player-info">
+        <div id="player1" class="player active">
+            <h2>Spieler 1</h2>
+            <div class="score">501</div>
+        </div>
+        <div id="player2" class="player">
+            <h2>Spieler 2</h2>
+            <div class="score">501</div>
+        </div>
+    </div>
+    <div class="input-area">
+        <div class="number-pad">
+            {% for i in range(1, 21) %}
+                <button class="number-btn" data-value="{{ i }}">{{ i }}</button>
+            {% endfor %}
+            <button class="number-btn" data-value="25">Bull</button>
+        </div>
+        <div class="multiplier-buttons">
+            <button id="single-btn" class="active">Single</button>
+            <button id="double-btn">Double</button>
+            <button id="triple-btn">Triple</button>
+        </div>
+        <button id="submit-score">Wurf bestätigen</button>
+    </div>
+    <div class="control-buttons">
+        <button id="undo-btn">Rückgängig</button>
+        <button id="next-player-btn">Nächster Spieler</button>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/scorer.js') }}"></script>
+{% endblock %}

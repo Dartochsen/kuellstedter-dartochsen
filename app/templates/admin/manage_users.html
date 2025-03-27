@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h1>Benutzer verwalten</h1>
+<table class="table table-striped">
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>Benutzername</th>
+            <th>E-Mail</th>
+            <th>Rollen</th>
+            <th>Mannschaft</th>
+            <th>Aktionen</th>
+        </tr>
+    </thead>
+    <tbody>
+    {% for user in users %}
+        <tr>
+            <td>{{ user.id }}</td>
+            <td>{{ user.username }}</td>
+            <td>{{ user.email }}</td>
+            <td>{{ ', '.join([role.name for role in user.roles]) }}</td>
+            <td>{{ user.player.team.name if user.player and user.player.team else 'Keine' }}</td>
+            <td>
+                {% if user.player %}
+                    <a href="{{ url_for('main.edit_player', player_id=user.player.id) }}" class="btn btn-primary btn-sm">Bearbeiten</a>
+                    <a href="{{ url_for('main.edit_player', player_id=user.player.id) }}" class="btn btn-info btn-sm">Mannschaft ändern</a>
+                {% endif %}
+                <form action="{{ url_for('main.delete_user', user_id=user.id) }}" method="POST" style="display: inline;">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <input type="submit" value="Löschen" class="btn btn-danger btn-sm" onclick="return confirm('Sind Sie sicher, dass Sie diesen Benutzer löschen möchten?');">
+                </form>                
+            </td>
+        </tr>
+    {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

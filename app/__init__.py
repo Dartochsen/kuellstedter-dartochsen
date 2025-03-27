@@ -1,122 +1,190 @@
 import os
-from flask import Flask
-from flask_sqlalchemy import SQLAlchemy
-from flask_migrate import Migrate
+from flask import Flask, jsonify, render_template, request, g
 from flask_login import LoginManager
-from flask_bcrypt import Bcrypt
-from flask_sslify import SSLify
+from flask_migrate import Migrate
 from flask_limiter import Limiter
+from flask_socketio import SocketIO
 from flask_limiter.util import get_remote_address
-from logging.config import dictConfig
-import firebase_admin
-from firebase_admin import credentials
-from config import Config
-from .extensions import db, bcrypt
-from .firebase_manager import initialize_event_structure, initialize_firebase
+from flask_caching import Cache
+from celery import Celery
+from config import config
+from .extensions import init_extensions, socketio, db
+from app.models.user import User, Role
+from app.models.question import Question
+import logging
+from logging.handlers import RotatingFileHandler
+import werkzeug.exceptions
+from dotenv import load_dotenv
 
-# Initialisierung der Erweiterungen
-db = SQLAlchemy()
-migrate = Migrate()
+# Laden der Umgebungsvariablen aus .env und .flaskenv
+load_dotenv()
+
+# Initialisierung des Login-Managers
 login_manager = LoginManager()
-bcrypt = Bcrypt()
+login_manager.login_view = 'auth.login'
+login_manager.login_message = 'Bitte melden Sie sich an, um diese Seite zu sehen.'
 
-limiter = Limiter(
-    key_func=get_remote_address,
-    default_limits=["200 per day", "50 per hour"],
-    storage_uri="redis://localhost:6379",
-    storage_options={"socket_connect_timeout": 30},
-    strategy="fixed-window"
-)
+# Initialisierung von Flask-Migrate
+migrate = Migrate()
 
-def configure_logging():
-    dictConfig({
-        'version': 1,
-        'formatters': {'default': {
-            'format': '[%(asctime)s] %(levelname)s in %(module)s: %(message)s',
-        }},
-        'handlers': {
-            'wsgi': {
-                'class': 'logging.StreamHandler',
-                'stream': 'ext://flask.logging.wsgi_errors_stream',
-                'formatter': 'default'
-            },
-            'file': {
-                'class': 'logging.handlers.RotatingFileHandler',
-                'filename': 'logs/dartochsen.log',
-                'maxBytes': 10240,
-                'backupCount': 10,
-                'formatter': 'default'
-            }
-        },
-        'root': {
-            'level': 'INFO',
-            'handlers': ['wsgi', 'file']
-        }
-    })
+# Initialisierung von Flask-Caching
+cache = Cache(config={'CACHE_TYPE': 'SimpleCache'})
 
-def print_routes(app):
-    print("Alle registrierten Routen:")
-    for rule in app.url_map.iter_rules():
-        print(f"{rule.endpoint}: {rule.rule}")
+# Initialisierung von Flask-Limiter mit Redis als Speicher
+limiter = Limiter(key_func=get_remote_address, storage_uri="redis://localhost:6379")
 
-def create_app(config_class=Config):
-    app = Flask(__name__, template_folder='templates')
-    app.config.from_object(config_class)
-    
-    configure_logging()
-    db.init_app(app)
-    migrate.init_app(app, db)
-    login_manager.init_app(app)
-    bcrypt.init_app(app)
-    limiter.init_app(app)
+@login_manager.user_loader
+def load_user(user_id):
+    return User.query.get(int(user_id))
 
-    # Initialisiere Flask-SSLify nur in der Produktionsumgebung
-    if not app.debug and not app.testing:
-        SSLify(app)
+def make_celery(app):
+    celery = Celery(
+        app.import_name,
+        backend=app.config['CELERY_RESULT_BACKEND'],
+        broker=app.config['CELERY_BROKER_URL']
+    )
+    celery.conf.update(app.config)
 
-    initialize_firebase(app)
+    class ContextTask(celery.Task):
+        def __call__(self, *args, **kwargs):
+            with app.app_context():
+                return self.run(*args, **kwargs)
 
-    # Registriere Blueprints
-    from app.main import bp as main_bp
-    from app.admin import bp as admin_bp
-    from app.api import bp as api_bp
-    from app.auth import bp as auth_bp
-    from app.errors import errors_bp, register_error_handlers
+    celery.Task = ContextTask
+    return celery
 
-    app.register_blueprint(main_bp)
-    app.register_blueprint(admin_bp, url_prefix='/admin')
-    app.register_blueprint(api_bp, url_prefix='/api')
-    app.register_blueprint(auth_bp, url_prefix='/auth')
-    app.register_blueprint(errors_bp)
-    
-    # Registriere Fehlerbehandler
-    register_error_handlers(app)
+def configure_logging(app):
+    os.makedirs('logs', exist_ok=True)
+    file_handler = RotatingFileHandler('logs/dartochsen.log', maxBytes=10240, backupCount=10)
+    file_handler.setFormatter(logging.Formatter(
+        '%(asctime)s %(levelname)s: %(message)s [in %(pathname)s:%(lineno)d]'
+    ))
+    file_handler.setLevel(logging.INFO)
+    app.logger.addHandler(file_handler)
 
-    # Konfiguriere Login-Manager
-    login_manager.login_view = 'auth.login'
-    login_manager.login_message = 'Bitte melden Sie sich an, um auf diese Seite zuzugreifen.'
-
-    @login_manager.user_loader
-    def load_user(user_id):
-        from app.models.user import User
-        return User.query.get(int(user_id))
-
-    # Event_Struktur initialisieren
-    with app.app_context():
-        initialize_event_structure()
-
-    # Debug-Routen
-    @app.route('/test')
-    def test_route():
-        return "Test-Route funktioniert!"
-
-    # Debug-Ausgabe der registrierten Routen
-    with app.app_context():
-        print_routes(app)
-
+    app.logger.setLevel(logging.INFO)
     app.logger.info('Dartochsen startup')
 
-    return app
+class CustomError(Exception):
+    def __init__(self, message, status_code):
+        self.message = message
+        self.status_code = status_code
 
-# Importiere Modelle
-from app import models
+def register_error_handlers(app):
+    @app.errorhandler(404)
+    def not_found_error(error):
+        if request.accept_mimetypes.accept_json and not request.accept_mimetypes.accept_html:
+            return jsonify(error="Not Found", message="The requested resource was not found.", status=404), 404
+        return render_template('404.html'), 404
+
+    @app.errorhandler(500)
+    def internal_server_error(error):
+        db.session.rollback()
+        app.logger.error('Server Error: %s', (error))
+        if request.accept_mimetypes.accept_json and not request.accept_mimetypes.accept_html:
+            return jsonify(error="Internal Server Error", message="An unexpected error occurred.", status=500), 500
+        return render_template('500.html'), 500
+
+    @app.errorhandler(CustomError)
+    def handle_custom_error(error):
+        if request.accept_mimetypes.accept_json and not request.accept_mimetypes.accept_html:
+            return jsonify(error="Custom Error", message=error.message, status=error.status_code), error.status_code
+        return render_template('error.html', message=error.message), error.status_code
+
+    @app.errorhandler(werkzeug.exceptions.BadRequest)
+    def handle_bad_request(e):
+        return jsonify(error="Bad Request", message=str(e), status=400), 400
+
+    @app.errorhandler(Exception)
+    def handle_generic_exception(e):
+        app.logger.error('Unhandled Exception: %s', (e))
+        if request.accept_mimetypes.accept_json and not request.accept_mimetypes.accept_html:
+            return jsonify(error="Unexpected Error", message="An unknown error occurred. Please contact support.", status=500), 500
+        return render_template('500.html'), 500
+
+def create_default_roles(app):
+    with app.app_context():
+        default_roles = ['user', 'admin', 'trainer']
+        for role_name in default_roles:
+            role = Role.query.filter_by(name=role_name).first()
+            if role is None:
+                role = Role(name=role_name)
+                db.session.add(role)
+        db.session.commit()
+
+def create_app(config_name='default'):
+    app = Flask(__name__)
+
+    # Laden der Konfigurationen
+    app.config.from_object(config[config_name])
+    config[config_name].init_app(app)
+
+    # Laden zusätzlicher Umgebungsvariablen aus .env
+    app.config.from_prefixed_env()
+
+    configure_logging(app)
+
+    init_extensions(app)
+    login_manager.init_app(app)
+    migrate.init_app(app, db)
+    limiter.init_app(app)
+    cache.init_app(app)
+
+    celery = make_celery(app)
+    app.extensions['celery'] = celery
+
+    with app.app_context():
+        # Registrierung der Blueprints
+        from app.main import bp as main_bp
+        from app.auth import bp as auth_bp
+        from app.admin import bp as admin_bp
+        from app.api import bp as api_bp
+        from app.questions import bp as questions_bp
+
+        app.register_blueprint(main_bp)
+        app.register_blueprint(auth_bp, url_prefix='/auth')
+        app.register_blueprint(admin_bp, url_prefix='/admin')
+        app.register_blueprint(api_bp, url_prefix='/api')
+        app.register_blueprint(questions_bp, url_prefix='/questions')
+
+        # Übergeben Sie die app-Instanz an die Blueprints
+        main_bp.app = app
+        auth_bp.app = app
+        admin_bp.app = app
+        api_bp.app = app
+        questions_bp.app = app
+
+        # Import der Turnier-Routen
+        from app.main import tournament_routes
+
+        # Erstellen Sie die Standardrollen
+        create_default_roles(app)
+
+    @app.before_request
+    def before_request():
+        print("Before request is called")  # Temporäres Print-Statement für Debugging
+        g.app = app
+
+    @app.after_request
+    def after_request(response):
+        app.logger.info(f"Antwort gesendet: {response.status}")
+        return response
+
+    if app.debug:
+        app.logger.debug("Alle registrierten Routen nach Blueprint-Registrierung:")
+        for rule in app.url_map.iter_rules():
+            app.logger.debug(f"{rule.endpoint}: {rule.rule}")
+
+    register_error_handlers(app)
+
+    @app.route('/test')
+    @cache.cached(timeout=300)  # Cache für 5 Minuten
+    def test():
+        app.logger.info('Test Route wurde aufgerufen')
+        return 'Test Route funktioniert'
+
+    @app.context_processor
+    def inject_debug():
+        return dict(debug=app.debug)
+
+    return app

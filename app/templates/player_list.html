@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h1>Spielerliste</h1>
+<ul>
+    {% for player in players %}
+    <li>
+        <a href="{{ url_for('main.statistiken', player_id=player.id) }}">{{ player.name }}</a>
+    </li>
+    {% endfor %}
+</ul>
+{% endblock %}

@@ -4,100 +4,124 @@
 
 {% block content %}
 <div class="container">
-    <header>
-        <h1>Willkommen bei den Küllstedter Dartochsen</h1>
-    </header>
-    <main>
-        <section>
-            <h2>Über uns</h2>
-            <p>Die Küllstedter Dartochsen sind ein engagierter Dartverein aus Thüringen. Wir bieten regelmäßige Trainings, spannende Turniere und eine freundliche Gemeinschaft für alle Dart-Enthusiasten.</p>
-        </section>
+    <div class="row">
+        <div class="col-12">
+            <header>
+                <h1 class="mb-4">Willkommen bei den Küllstedter Dartochsen</h1>
+            </header>
+        </div>
+    </div>
 
-        {% if current_user.is_authenticated %}
+    <div class="row">
+        <div class="col-md-8">
             <section>
-                <h2>Willkommen zurück, {{ current_user.username }}!</h2>
-                <p>Hier sind einige Optionen für Sie:</p>
-                <div class="menu">
-                    <a href="{{ url_for('main.profile') }}" class="menu-item">Mein Profil</a>
-                    <a href="{{ url_for('main.turniere') }}" class="menu-item">Turniere</a>
-                    <a href="{{ url_for('main.training') }}" class="menu-item">Training</a>
-                    <a href="{{ url_for('main.diskussionsforum') }}" class="menu-item">Diskussionsforum</a>
-                    <a href="{{ url_for('main.marktplatz') }}" class="menu-item">Marktplatz</a>
-                </div>
+                <h2>Über uns</h2>
+                <p>🎯 Die Küllstedter Dartochsen – hier fliegen die Pfeile und die Stimmung ist top! 🔥 Egal, ob du ein Pro am Oche bist oder einfach nur Bock auf Darts hast – bei uns findest du spannende Turniere, lockere Trainingsabende und ne richtig coole Truppe. Jeden Donnerstag ab 19 Uhr geht's los! 🍻🎯</p>
             </section>
-        {% else %}
-            <section>
-                <h2>Werden Sie Teil unserer Gemeinschaft</h2>
-                <p>
-                    <a href="{{ url_for('main.login') }}" class="btn btn-primary">Anmelden</a>
-                    <a href="{{ url_for('main.register') }}" class="btn btn-secondary">Registrieren</a>
-                </p>
-            </section>
-        {% endif %}
 
-        <section>
-            <h2>Neuigkeiten</h2>
-            {% if news_items %}
-                <ul id="news-feed">
-                    {% for news in news_items %}
-                    <li>
-                        <h3>{{ news.title }}</h3>
-                        <p>{{ news.content|truncate(100) }}</p>
-                        <small>Veröffentlicht am: {{ news.date }}</small>
-                    </li>
-                    {% endfor %}
-                </ul>
-            {% else %}
-                <p>Derzeit gibt es keine Neuigkeiten.</p>
-            {% endif %}
-        </section>
-        
-        <section>
-            <h2>Kommende Veranstaltungen</h2>
-            {% if upcoming_events %}
-                <ul id="events-list">
-                    {% for event in upcoming_events %}
-                    <li>
-                        <h3>{{ event.title }}</h3>
-                        <p>{{ event.description|truncate(100) }}</p>
-                        <p>Datum: {{ event.date }}</p>
-                        <p>Ort: {{ event.location }}</p>
-                        {% if current_user.is_authenticated %}
-                            <button onclick="registerForEvent('{{ event.id }}')">Teilnehmen</button>
+            <div class="instagram-link mt-4">
+                <a href="https://www.instagram.com/kullstedter_dart_ochsen_/" target="_blank" rel="noopener noreferrer" class="btn btn-outline-primary">
+                    <img src="{{ url_for('static', filename='images/instagram-icon.png') }}" alt="Instagram Icon" width="30" height="30" class="me-2">
+                    Folgen Sie uns auf Instagram
+                </a>
+            </div>
+
+            {% if current_user.is_authenticated %}
+                <section class="mt-4">
+                    <h2>Willkommen zurück, {{ current_user.username }}!</h2>
+                    <p>Hier sind einige Optionen für Sie:</p>
+                    <div class="menu d-flex flex-wrap justify-content-between">
+                        <a href="{{ url_for('main.profile') }}" class="btn btn-primary m-2">Mein Profil</a>
+                        {% if 'main.get_tournaments' in g.app.url_map._rules_by_endpoint %}
+                            <a href="{{ url_for('main.get_tournaments') }}" class="btn btn-primary m-2">Turniere</a>
                         {% endif %}
-                    </li>
-                    {% endfor %}
-                </ul>
+                        {% if 'main.training' in g.app.url_map._rules_by_endpoint %}
+                            <a href="{{ url_for('main.training') }}" class="btn btn-primary m-2">Training</a>
+                        {% endif %}
+                        {% if 'main.forum' in g.app.url_map._rules_by_endpoint %}
+                            <a href="{{ url_for('main.forum') }}" class="btn btn-primary m-2">Diskussionsforum</a>
+                        {% endif %}
+                        {% if 'main.marktplatz' in g.app.url_map._rules_by_endpoint %}
+                            <a href="{{ url_for('main.marktplatz') }}" class="btn btn-primary m-2">Marktplatz</a>
+                        {% endif %}
+                    </div>
+                </section>
             {% else %}
-                <p>Derzeit sind keine Veranstaltungen geplant.</p>
+                <section class="mt-4">
+                    <h2>Also, schnapp dir deine Darts und werde Teil unserer Gemeinschaft! 💪</h2>
+                    <p>
+                        <a href="{{ url_for('auth.login') }}" class="btn btn-primary me-2">Anmelden</a>
+                        <a href="{{ url_for('auth.register') }}" class="btn btn-secondary">Registrieren</a>
+                    </p>
+                </section>
             {% endif %}
-        </section>
-    </main>
-</div>
+        </div>
 
-<script>
-function registerForEvent(eventId) {
-    fetch('/register-event', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({eventId: eventId}),
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            alert('Erfolgreich für das Event angemeldet!');
-            // Deaktivieren Sie den "Teilnehmen"-Button nach erfolgreicher Registrierung
-            document.querySelector(`button[onclick="registerForEvent('${eventId}')"]`).disabled = true;
-        } else {
-            alert('Fehler bei der Anmeldung: ' + data.message);
-        }
-    })
-    .catch((error) => {
-        console.error('Error:', error);
-        alert('Ein Fehler ist aufgetreten.');
-    });
-}
-</script>
+        <div class="col-md-4">
+            <section>
+                <h2>Neuigkeiten</h2>
+                {% if news_items %}
+                    <ul id="news-feed" class="list-group">
+                        {% for news in news_items %}
+                        <li class="list-group-item">
+                            <h3 class="h5">{{ news.title }}</h3>
+                            <p>{{ news.content|truncate(100) }}</p>
+                            <small class="text-muted">Veröffentlicht am: {{ news.date }}</small>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                {% else %}
+                    <p>Derzeit gibt es keine Neuigkeiten.</p>
+                {% endif %}
+            </section>
+        </div>
+    </div>
+
+    <div class="row mt-4">
+        <div class="col-12">
+            <section>
+                <h2>Kommende Veranstaltungen</h2>
+                {% if upcoming_events %}
+                    <div id="events-list" class="row">
+                        {% for event in upcoming_events %}
+                        <div class="col-md-6 mb-3">
+                            <div class="card">
+                                <div class="card-body">
+                                    <h3 class="card-title h5">{{ event.title }}</h3>
+                                    <p class="card-text">{{ event.description|truncate(100) }}</p>
+                                    <p class="card-text"><small class="text-muted">Datum: {{ event.date }}</small></p>
+                                    <p class="card-text"><small class="text-muted">Ort: {{ event.location }}</small></p>
+                                    {% if current_user.is_authenticated %}
+                                        <button onclick="registerForEvent('{{ event.id }}')" class="btn btn-sm btn-outline-primary">Teilnehmen</button>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <p>Derzeit sind keine Veranstaltungen geplant.</p>
+                {% endif %}
+            </section>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .instagram-link {
+        margin: 20px 0;
+        text-align: center;
+    }
+    .instagram-link a {
+        display: inline-flex;
+        align-items: center;
+        text-decoration: none;
+        font-weight: bold;
+    }
+    .instagram-link img {
+        margin-right: 10px;
+    }
+</style>
 {% endblock %}

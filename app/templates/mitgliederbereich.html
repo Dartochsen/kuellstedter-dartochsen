@@ -1,0 +1,144 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="row">
+    <div class="col-md-8">
+        <h1 class="mb-4 fade-in">Mitgliederbereich</h1>
+        
+        <!-- Suchfunktion und Filter -->
+        <div class="mb-3">
+            <input type="text" id="memberSearch" class="form-control" placeholder="Mitglied suchen...">
+        </div>
+        <div class="mb-3">
+            <select id="teamFilter" class="form-select">
+                <option value="">Alle Teams</option>
+                <!-- Dynamische Team-Optionen -->
+                {% for team in teams %}
+                    <option value="{{ team }}">{{ team }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        
+        <!-- Mitgliederstatistiken -->
+        <div class="alert alert-info">
+            Gesamtanzahl der Mitglieder: {{ mitglieder|length }}
+        </div>
+
+        {% if mitglieder|length == 0 %}
+            <p class="text-muted">Keine Mitglieder gefunden.</p>
+        {% else %}
+        <table class="table table-striped slide-in">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>E-Mail</th>
+                    <th>Team</th>
+                    <th>Status</th>
+                    <th>Aktionen</th>
+                </tr>
+            </thead>
+            <tbody>
+            {% for mitglied in mitglieder %}
+                <tr>
+                    <td><a href="{{ url_for('main.mitglied_profil', mitglied_id=mitglied.id) }}">{{ mitglied.name }}</a></td>
+                    <td>{{ mitglied.email }}</td>
+                    <td>{{ mitglied.team }}</td>
+                    <td>{{ mitglied.status }}</td>
+                    <td>
+                        <button class="btn btn-sm btn-primary edit-member" data-id="{{ mitglied.id }}">Bearbeiten</button>
+                    </td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+        {% endif %}
+        
+        <!-- Exportfunktion -->
+        <button id="exportMembers" class="btn btn-secondary">Mitgliederliste exportieren</button>
+    </div>
+
+    <!-- Neues Mitglied hinzufügen -->
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Neues Mitglied hinzufügen</h5>
+                <form method="POST" action="{{ url_for('main.neues_mitglied') }}">
+                    <div class="mb-3">
+                        <label for="name" class="form-label">Name</label>
+                        <input type="text" class="form-control" id="name" name="name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="email" class="form-label">E-Mail</label>
+                        <input type="email" class="form-control" id="email" name="email" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="team" class="form-label">Team</label>
+                        <input type="text" class="form-control" id="team" name="team">
+                    </div>
+                    <div class="mb-3">
+                        <label for="role" class="form-label">Rolle</label>
+                        <select class="form-select" id="role" name="role">
+                            <option value="member">Mitglied</option>
+                            <option value="admin">Administrator</option>
+                            <option value="coach">Trainer</option>
+                        </select>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Hinzufügen</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<script>
+// Suchfunktion
+document.getElementById('memberSearch').addEventListener('input', function(e) {
+    const searchValue = e.target.value.toLowerCase();
+    const rows = document.querySelectorAll('tbody tr');
+    rows.forEach(row => {
+        const name = row.querySelector('td:first-child').textContent.toLowerCase();
+        row.style.display = name.includes(searchValue) ? '' : 'none';
+    });
+});
+
+// Filterfunktion
+document.getElementById('teamFilter').addEventListener('change', function(e) {
+    const filterValue = e.target.value.toLowerCase();
+    const rows = document.querySelectorAll('tbody tr');
+    rows.forEach(row => {
+        const team = row.querySelector('td:nth-child(3)').textContent.toLowerCase();
+        row.style.display = filterValue === '' || team.includes(filterValue) ? '' : 'none';
+    });
+});
+
+// Exportfunktion
+document.getElementById('exportMembers').addEventListener('click', function() {
+    const rows = document.querySelectorAll('tbody tr');
+    let csvContent = 'Name,E-Mail,Team,Status\n';
+    rows.forEach(row => {
+        const cells = row.querySelectorAll('td');
+        const rowData = Array.from(cells).map(cell => cell.textContent).join(',');
+        csvContent += rowData + '\n';
+    });
+    
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'Mitgliederliste.csv';
+    a.click();
+    
+    URL.revokeObjectURL(url);
+});
+
+// Bearbeitungsfunktion
+document.querySelectorAll('.edit-member').forEach(button => {
+    button.addEventListener('click', function() {
+        const memberId = this.getAttribute('data-id');
+        // Implementieren Sie hier die Bearbeitungslogik
+    });
+});
+</script>
+
+{% endblock %}

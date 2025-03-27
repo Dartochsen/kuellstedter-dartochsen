@@ -1,38 +1,60 @@
 {% extends "base.html" %}
+
+{% block title %}Diskussionsforum{% endblock %}
+
 {% block content %}
-<h1>Diskussionsforum</h1>
-<a href="{{ url_for('main.neues_thema') }}" class="btn">Neues Thema erstellen</a>
-<table id="forum-table">
-    <thead>
-        <tr>
-            <th>Titel</th>
-            <th>Autor</th>
-            <th>Datum</th>
-            <th>Antworten</th>
-        </tr>
-    </thead>
-    <tbody>
-        <!-- Forumthemen werden hier dynamisch eingefügt -->
-    </tbody>
-</table>
+<div class="container mt-4">
+    <h1 class="mb-4">Diskussionsforum</h1>
+    
+    {% if current_user.is_authenticated and current_user.is_member %}
+        <a href="{{ url_for('main.neues_thema') }}" class="btn btn-primary mb-3">Neues Thema erstellen</a>
+    {% endif %}
+    
+    <table id="forum-table" class="table table-striped">
+        <thead>
+            <tr>
+                <th>Titel</th>
+                <th>Autor</th>
+                <th>Datum</th>
+                <th>Antworten</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for thema in themen %}
+            <tr>
+                <td><a href="{{ url_for('main.forum_thema', thema_id=thema.id) }}">{{ thema.titel }}</a></td>
+                <td>{{ thema.autor.username }}</td>
+                <td>{{ thema.erstellungsdatum.strftime('%d.%m.%Y %H:%M') }}</td>
+                <td>{{ thema.antworten|length }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
 
-<script src="{{ url_for('main.static', filename='js/realtime.js') }}"></script>
-<script>
-    function updateForumThemen(data) {
-        const tableBody = document.querySelector('#forum-table tbody');
-        tableBody.innerHTML = '';
-        for (const [key, thema] of Object.entries(data)) {
-            const row = document.createElement('tr');
-            row.innerHTML = `
-                <td><a href="/thema/${key}">${thema.titel}</a></td>
-                <td>${thema.autor}</td>
-                <td>${thema.datum}</td>
-                <td>${thema.antworten ? thema.antworten.length : 0}</td>
-            `;
-            tableBody.appendChild(row);
+    {% if not themen %}
+        <p class="text-muted">Noch keine Themen vorhanden.</p>
+    {% endif %}
+</div>
+
+{% if current_user.is_authenticated and current_user.is_member %}
+    <script src="{{ url_for('static', filename='js/realtime.js') }}"></script>
+    <script>
+        function updateForumThemen(data) {
+            const tableBody = document.querySelector('#forum-table tbody');
+            tableBody.innerHTML = '';
+            for (const [key, thema] of Object.entries(data)) {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td><a href="{{ url_for('main.forum') }}/${key}">${thema.titel}</a></td>
+                    <td>${thema.autor}</td>
+                    <td>${new Date(thema.erstellungsdatum).toLocaleString()}</td>
+                    <td>${thema.antworten ? thema.antworten.length : 0}</td>
+                `;
+                tableBody.appendChild(row);
+            }
         }
-    }
 
-    setupRealtimeUpdates('forum_themen', updateForumThemen);
-</script>
+        setupRealtimeUpdates('forum_themen', updateForumThemen);
+    </script>
+{% endif %}
 {% endblock %}

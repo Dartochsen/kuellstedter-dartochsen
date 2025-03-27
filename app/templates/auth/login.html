@@ -1,31 +1,45 @@
 {% extends "auth/auth_base.html" %}
 
-{% block auth_title %}Anmelden{% endblock %}
+{% block auth_title %}
+<h1 class="text-center text-dark mb-4">Anmelden</h1>
+{% endblock %}
 
 {% block auth_content %}
-    <form method="POST" action="{{ url_for('auth.login') }}">
-        {{ form.hidden_tag() }}
-        <div class="mb-3">
-            {{ form.username.label(class="form-label") }}
-            {{ form.username(class="form-control") }}
-            {% for error in form.username.errors %}
-                <span class="text-danger">{{ error }}</span>
-            {% endfor %}
+<div class="card mt-4">
+    <div class="card-body">
+        <form method="POST" action="{{ url_for('auth.login') }}" novalidate>
+            {{ form.hidden_tag() }}
+            
+            <div class="mb-3">
+                {{ form.username.label(class="form-label text-dark") }}
+                {{ form.username(class="form-control", placeholder="Benutzername", autocomplete="username", required=true, minlength=3, maxlength=64) }}
+                <div class="form-text">Ihr Benutzername, den Sie bei der Registrierung angegeben haben.</div>
+                {% for error in form.username.errors %}
+                    <div class="invalid-feedback d-block">{{ error }}</div>
+                {% endfor %}
+            </div>
+            
+            <div class="mb-3">
+                {{ form.password.label(class="form-label text-dark") }}
+                {{ form.password(class="form-control", placeholder="Passwort", autocomplete="current-password", required=true, minlength=8) }}
+                <div class="form-text">Ihr Passwort muss mindestens 8 Zeichen lang sein.</div>
+                {% for error in form.password.errors %}
+                    <div class="invalid-feedback d-block">{{ error }}</div>
+                {% endfor %}
+            </div>
+
+            <div class="mb-3 form-check">
+                {{ form.remember_me(class="form-check-input") }}
+                {{ form.remember_me.label(class="form-check-label text-dark") }}
+            </div>
+
+            {{ form.submit(class="btn btn-primary w-100") }}
+        </form>
+
+        <div class="text-center mt-3">
+            <p>Noch kein Konto? <a href="{{ url_for('auth.register') }}">Registrieren</a></p>
+            <p><a href="{{ url_for('auth.reset_password_request') }}">Passwort vergessen?</a></p>
         </div>
-        <div class="mb-3">
-            {{ form.password.label(class="form-label") }}
-            {{ form.password(class="form-control") }}
-            {% for error in form.password.errors %}
-                <span class="text-danger">{{ error }}</span>
-            {% endfor %}
-        </div>
-        <div class="mb-3 form-check">
-            {{ form.remember_me(class="form-check-input") }}
-            {{ form.remember_me.label(class="form-check-label") }}
-        </div>
-        {{ form.submit(class="btn btn-primary w-100") }}
-    </form>
-    <div class="text-center mt-3">
-        <p>Noch kein Konto? <a href="{{ url_for('auth.register') }}">Registrieren</a></p>
     </div>
+</div>
 {% endblock %}

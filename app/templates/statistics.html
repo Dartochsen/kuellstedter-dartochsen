@@ -1,0 +1,159 @@
+{% extends "base.html" %}
+
+{% block title %}{{ player.name }} - Spielerprofil und Statistiken{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h1 class="mb-4">{{ player.name }} - Spielerprofil und Statistiken</h1>
+
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card mb-4">
+                <div class="card-body">
+                    <h2 class="card-title">Allgemeine Statistiken</h2>
+                    <ul class="list-group list-group-flush">
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            Gesamtanzahl der Spiele
+                            <span class="badge bg-primary rounded-pill">{{ total_games }}</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            Gewonnene Spiele
+                            <span class="badge bg-success rounded-pill">{{ won_games }}</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            Gewinnrate
+                            <span class="badge bg-info rounded-pill">{{ (won_games / total_games * 100)|round(2) if total_games > 0 else 0 }}%</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            Durchschnittliche Punktzahl
+                            <span class="badge bg-secondary rounded-pill">{{ avg_score|round(2) if avg_score else 'N/A' }}</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            Beste Punktzahl
+                            <span class="badge bg-warning text-dark rounded-pill">{{ best_score if best_score else 'N/A' }}</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            Durchschnittsscore
+                            <span class="badge bg-secondary rounded-pill">{{ player.average_score|round(2) }}</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            Checkout-Prozentsatz
+                            <span class="badge bg-info rounded-pill">{{ player.checkout_percentage|round(2) }}%</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            Gespielte Spiele
+                            <span class="badge bg-primary rounded-pill">{{ player.games_played }}</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            Siege
+                            <span class="badge bg-success rounded-pill">{{ player.wins }}</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            Niederlagen
+                            <span class="badge bg-danger rounded-pill">{{ player.losses }}</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            Höchstes Checkout
+                            <span class="badge bg-warning text-dark rounded-pill">{{ player.highest_checkout }}</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            Trainingsstunden
+                            <span class="badge bg-secondary rounded-pill">{{ player.training_hours }}</span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card mb-4">
+                <div class="card-body">
+                    <h2 class="card-title">Leistungsanalyse</h2>
+                    <p><strong>Leistungstrend:</strong> {{ trend_analysis }}</p>
+                    <p><strong>Trainingsempfehlung:</strong> {{ training_recommendation }}</p>
+                    
+                    {% if analyzed_data %}
+                    <h3>Detaillierte Analyse</h3>
+                    <ul class="list-group list-group-flush">
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            Durchschnittlicher Wurfwinkel
+                            <span class="badge bg-primary rounded-pill">{{ analyzed_data.avg_angle }}</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            Durchschnittliche Geschwindigkeit
+                            <span class="badge bg-primary rounded-pill">{{ analyzed_data.avg_velocity }}</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            Durchschnittliche Genauigkeit
+                            <span class="badge bg-primary rounded-pill">{{ analyzed_data.avg_accuracy }}</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            Höchste Punktzahl
+                            <span class="badge bg-warning text-dark rounded-pill">{{ analyzed_data.max_score }}</span>
+                        </li>
+                    </ul>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-12">
+            <h2>Letzte Würfe</h2>
+            <div class="table-responsive">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>Datum</th>
+                            <th>Wurfwinkel</th>
+                            <th>Geschwindigkeit</th>
+                            <th>Genauigkeit</th>
+                            <th>Punktzahl</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for data in performance_data %}
+                        <tr>
+                            <td>{{ data.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+                            <td>{{ data.angle }}</td>
+                            <td>{{ data.velocity }}</td>
+                            <td>{{ data.accuracy }}</td>
+                            <td>{{ data.score }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mt-4">
+        <div class="col-md-6">
+            <h2>Daten erfassen</h2>
+            <form method="POST" action="{{ url_for('main.player_data') }}" class="mb-4">
+                <input type="hidden" name="player_id" value="{{ player.id }}">
+                <div class="mb-3">
+                    <label for="throw_angle" class="form-label">Wurfwinkel:</label>
+                    <input type="number" id="throw_angle" name="throw_angle" step="0.1" class="form-control" required>
+                </div>
+                <div class="mb-3">
+                    <label for="speed" class="form-label">Geschwindigkeit:</label>
+                    <input type="number" id="speed" name="speed" step="0.1" class="form-control" required>
+                </div>
+                <div class="mb-3">
+                    <label for="accuracy" class="form-label">Genauigkeit:</label>
+                    <input type="number" id="accuracy" name="accuracy" step="0.1" class="form-control" required>
+                </div>
+                <div class="mb-3">
+                    <label for="score" class="form-label">Punktzahl:</label>
+                    <input type="number" id="score" name="score" class="form-control" required>
+                </div>
+                <button type="submit" class="btn btn-primary">Daten speichern</button>
+            </form>
+        </div>
+    </div>
+
+    <a href="{{ url_for('main.player_data') }}" class="btn btn-secondary">Zurück zur Spielerliste</a>
+</div>
+{% endblock %}

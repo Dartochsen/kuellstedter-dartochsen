@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h1>Admin Dashboard</h1>
+<div class="dashboard-widgets">
+    <div class="widget">
+        <h2>Benutzerübersicht</h2>
+        <p>Gesamtanzahl der Benutzer: {{ total_users }}</p>
+        <a href="{{ url_for('main.manage_users') }}">Benutzer verwalten</a>
+    </div>
+    <div class="widget">
+        <h2>Eventübersicht</h2>
+        <p>Aktuelle Events: {{ current_events }}</p>
+        <a href="{{ url_for('main.manage_events') }}">Events verwalten</a>
+    </div>
+    <div class="widget">
+        <h2>Statistiken</h2>
+        <a href="{{ url_for('main.site_statistics') }}">Detaillierte Statistiken anzeigen</a>
+    </div>
+    <div class="widget">
+        <h2>Hintergrundaufgaben</h2>
+        <button id="generateReportBtn">Wöchentlichen Bericht generieren</button>
+        <button id="cleanDataBtn">Alte Daten bereinigen</button>
+    </div>
+    <div class="widget">
+        <h2>Spieler-Statistiken aktualisieren</h2>
+        <input type="number" id="playerIdInput" placeholder="Spieler-ID">
+        <button id="updateStatsBtn">Statistiken aktualisieren</button>
+    </div>
+</div>
+
+<h2>Task-Status</h2>
+<div id="taskStatus"></div>
+
+<script>
+function startTask(url) {
+    fetch(url, {method: 'POST'})
+        .then(response => response.json())
+        .then(data => {
+            checkTaskStatus(data.task_id);
+        });
+}
+
+function checkTaskStatus(taskId) {
+    fetch('/task_status/' + taskId)
+        .then(response => response.json())
+        .then(data => {
+            document.getElementById('taskStatus').innerHTML = 'Task-Status: ' + data.state;
+            if (data.state != 'SUCCESS' && data.state != 'FAILURE') {
+                setTimeout(() => checkTaskStatus(taskId), 1000);
+            }
+        });
+}
+
+document.getElementById('generateReportBtn').addEventListener('click', () => startTask('/generate_report'));
+document.getElementById('cleanDataBtn').addEventListener('click', () => startTask('/clean_data'));
+document.getElementById('updateStatsBtn').addEventListener('click', () => {
+    const playerId = document.getElementById('playerIdInput').value;
+    startTask('/update_player_stats/' + playerId);
+});
+</script>
+{% endblock %}

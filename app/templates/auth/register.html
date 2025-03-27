@@ -1,41 +1,51 @@
 {% extends "auth/auth_base.html" %}
 
-{% block auth_title %}Registrieren{% endblock %}
+{% block auth_title %}
+<h1 class="text-center text-dark mb-4">Registrieren</h1>
+{% endblock %}
 
 {% block auth_content %}
-    <form method="POST" action="{{ url_for('auth.register') }}">
-        {{ form.hidden_tag() }}
-        <div class="mb-3">
-            {{ form.username.label(class="form-label") }}
-            {{ form.username(class="form-control") }}
-            {% for error in form.username.errors %}
-                <span class="text-danger">{{ error }}</span>
-            {% endfor %}
+<div class="card mt-4">
+    <div class="card-body">
+        <form method="POST" action="{{ url_for('auth.register') }}" novalidate>
+            {{ form.hidden_tag() }}
+            <div class="mb-3">
+                {{ form.username.label(class="form-label text-dark") }}
+                {{ form.username(class="form-control", placeholder="Wählen Sie einen Benutzernamen", autocomplete="username", required=true, minlength=3, maxlength=64) }}
+                <div class="form-text">Ihr Benutzername sollte einzigartig sein und darf nur Buchstaben, Zahlen, Punkte oder Unterstriche enthalten.</div>
+                {% for error in form.username.errors %}
+                    <div class="invalid-feedback d-block">{{ error }}</div>
+                {% endfor %}
+            </div>
+            <div class="mb-3">
+                {{ form.email.label(class="form-label text-dark") }}
+                {{ form.email(class="form-control", placeholder="Geben Sie Ihre E-Mail-Adresse ein", autocomplete="email", required=true, type="email") }}
+                <div class="form-text">Wir werden Ihre E-Mail-Adresse niemals an Dritte weitergeben.</div>
+                {% for error in form.email.errors %}
+                    <div class="invalid-feedback d-block">{{ error }}</div>
+                {% endfor %}
+            </div>
+            <div class="mb-3">
+                {{ form.password.label(class="form-label text-dark") }}
+                {{ form.password(class="form-control", placeholder="Wählen Sie ein sicheres Passwort", autocomplete="new-password", required=true, minlength=8) }}
+                <div class="form-text">Ihr Passwort muss mindestens 8 Zeichen lang sein und Groß- und Kleinbuchstaben, Zahlen sowie Sonderzeichen enthalten.</div>
+                {% for error in form.password.errors %}
+                    <div class="invalid-feedback d-block">{{ error }}</div>
+                {% endfor %}
+            </div>
+            <div class="mb-3">
+                {{ form.password2.label(class="form-label text-dark") }}
+                {{ form.password2(class="form-control", placeholder="Wiederholen Sie Ihr Passwort", autocomplete="new-password", required=true, minlength=8) }}
+                <div class="form-text">Zur Sicherheit bitten wir Sie, Ihr Passwort zu wiederholen.</div>
+                {% for error in form.password2.errors %}
+                    <div class="invalid-feedback d-block">{{ error }}</div>
+                {% endfor %}
+            </div>
+            {{ form.submit(class="btn btn-primary w-100") }}
+        </form>
+        <div class="text-center mt-3">
+            <p>Bereits registriert? <a href="{{ url_for('auth.login') }}">Anmelden</a></p>
         </div>
-        <div class="mb-3">
-            {{ form.email.label(class="form-label") }}
-            {{ form.email(class="form-control") }}
-            {% for error in form.email.errors %}
-                <span class="text-danger">{{ error }}</span>
-            {% endfor %}
-        </div>
-        <div class="mb-3">
-            {{ form.password.label(class="form-label") }}
-            {{ form.password(class="form-control") }}
-            {% for error in form.password.errors %}
-                <span class="text-danger">{{ error }}</span>
-            {% endfor %}
-        </div>
-        <div class="mb-3">
-            {{ form.password2.label(class="form-label") }}
-            {{ form.password2(class="form-control") }}
-            {% for error in form.password2.errors %}
-                <span class="text-danger">{{ error }}</span>
-            {% endfor %}
-        </div>
-        {{ form.submit(class="btn btn-primary w-100") }}
-    </form>
-    <div class="text-center mt-3">
-        <p>Bereits registriert? <a href="{{ url_for('auth.login') }}">Anmelden</a></p>
     </div>
+</div>
 {% endblock %}

@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h1>Fragen</h1>
+<a href="{{ url_for('questions.create') }}" class="btn btn-primary mb-3">Neue Frage stellen</a>
+<div class="list-group">
+    {% for question in questions %}
+    <a href="{{ url_for('questions.show', id=question.id) }}" class="list-group-item list-group-item-action">
+        <h5 class="mb-1">{{ question.title }}</h5>
+        <small>Erstellt am: {{ question.created_at.strftime('%d.%m.%Y %H:%M') }}</small>
+    </a>
+    {% endfor %}
+</div>
+{% endblock %}

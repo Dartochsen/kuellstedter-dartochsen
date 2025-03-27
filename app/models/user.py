@@ -1,33 +1,61 @@
-from itsdangerous import URLSafeTimedSerializer as Serializer
 from flask import current_app
 from app.extensions import db, bcrypt
 from flask_login import UserMixin
-from werkzeug.security import generate_password_hash, check_password_hash
-from app import db, login_manager
 from datetime import datetime
-from app import bcrypt
+from itsdangerous.url_safe import URLSafeTimedSerializer as Serializer
+from sqlalchemy.orm import relationship
+from sqlalchemy.ext.hybrid import hybrid_property
 
-class User(UserMixin, db.Model):
+# Zwischentabelle für die Beziehung zwischen User und Role
+user_roles = db.Table('user_roles',
+    db.Column('user_id', db.Integer, db.ForeignKey('users.id')),
+    db.Column('role_id', db.Integer, db.ForeignKey('roles.id'))
+)
+
+class Role(db.Model):
+    __tablename__ = 'roles'
     id = db.Column(db.Integer, primary_key=True)
-    username = db.Column(db.String(64), index=True, unique=True)
-    email = db.Column(db.String(120), index=True, unique=True)
-    password_hash = db.Column(db.String(128))
-    about_me = db.Column(db.String(140))
-    last_seen = db.Column(db.DateTime, default=datetime.utcnow)
-
-    def set_password(self, password):
-        self.password_hash = bcrypt.generate_password_hash(password).decode('utf-8')
-
-    def check_password(self, password):
-        return bcrypt.check_password_hash(self.password_hash, password)
+    name = db.Column(db.String(64), unique=True)
+    description = db.Column(db.String(255))
 
     def __repr__(self):
-        return f'<User {self.username}>'
+        return f'<Role {self.name}>'
 
-    def avatar(self, size):
-        # Hier können Sie eine Methode implementieren, um Benutzer-Avatare zu generieren oder abzurufen
-        # Zum Beispiel mit Gravatar oder einem Standard-Platzhalterbild
-        pass
+class User(UserMixin, db.Model):
+    __tablename__ = 'users'
+
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(64), index=True, unique=True, nullable=False)
+    email = db.Column(db.String(120), index=True, unique=True, nullable=False)
+    _password_hash = db.Column('password_hash', db.String(128), nullable=False)
+    about_me = db.Column(db.String(140))
+    last_seen = db.Column(db.DateTime, default=datetime.utcnow, index=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    # Beziehung zu Rollen (Viele-zu-Viele)
+    roles = db.relationship('Role', secondary=user_roles, backref=db.backref('users', lazy='dynamic'))
+
+    # Andere Beziehungen bleiben unverändert
+    player_profile = relationship('Player', back_populates='user', uselist=False, lazy='joined')
+    organized_events = relationship('Event', back_populates='organizer', lazy='dynamic')
+    participated_events = relationship('Event', secondary='event_participants', back_populates='participants', lazy='dynamic')
+    forum_themen = relationship('ForumThema', back_populates='autor', lazy='dynamic')
+    forum_antworten = relationship('ForumAntwort', back_populates='autor', lazy='dynamic')
+    posts = relationship('Post', back_populates='author', lazy='dynamic')
+    activities = relationship('Activity', back_populates='user', lazy='dynamic')
+    organized_tournaments = relationship('Tournament', back_populates='organizer', lazy='dynamic')
+
+    # Bestehende Methoden bleiben unverändert
+    @hybrid_property
+    def password(self):
+        return self._password_hash
+
+    @password.setter
+    def password(self, plain_text_password):
+        self._password_hash = bcrypt.generate_password_hash(plain_text_password).decode('utf-8')
+
+    def check_password(self, plain_text_password):
+        return bcrypt.check_password_hash(self._password_hash, plain_text_password)
 
     def get_reset_token(self, expires_sec=1800):
         s = Serializer(current_app.config['SECRET_KEY'], expires_sec)
@@ -42,6 +70,36 @@ class User(UserMixin, db.Model):
             return None
         return User.query.get(user_id)
 
-@login_manager.user_loader
-def load_user(id):
-    return User.query.get(int(id))
+    def __repr__(self):
+        return f'<User {self.username}>'
+
+    def avatar(self, size):
+        # Implement avatar logic here (e.g., using Gravatar)
+        pass
+
+    @property
+    def is_active(self):
+        return True
+
+    def has_role(self, role_name):
+        return any(role.name == role_name for role in self.roles)
+
+    @property
+    def is_member(self):
+        return self.has_role('member') or self.has_role('admin')
+
+    @property
+    def is_admin(self):
+        return self.has_role('admin')
+
+    @property
+    def is_trainer(self):
+        return self.has_role('trainer')
+
+    @classmethod
+    def get_by_username(cls, username):
+        return cls.query.filter_by(username=username).first()
+
+    @classmethod
+    def get_by_email(cls, email):
+        return cls.query.filter_by(email=email).first()

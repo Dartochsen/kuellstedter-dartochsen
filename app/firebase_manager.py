@@ -166,9 +166,10 @@ def search_data(query):
                     })
         
         logger.info(f"Suchanfrage '{query}' erfolgreich durchgeführt")
-        
+        return results
     except Exception as e:
          logger.error(f"Fehler bei der Suchanfrage '{query}': {str(e)}")
+         return []
 
 def get_analytics_data():
     try:
@@ -181,6 +182,7 @@ def get_analytics_data():
        return analytics
     except Exception as e:
        logger.error(f"Fehler beim Abrufen der Analysedaten: {str(e)}")
+       return {}
 
 def send_push_notification(token, title, body):
     try:
@@ -208,93 +210,158 @@ def test_db_connection():
         logger.error(f"Datenbankverbindungsfehler: {str(e)}")
         return False
 
+def get_events():
+    try:
+        events_ref = db.reference('events')
+        events = events_ref.get()
+        if events:
+            return list(events.values())
+        return []
+    except Exception as e:
+        logger.error(f"Fehler beim Abrufen der Events: {str(e)}")
+        return []
+
 def get_event(event_id):
-    event_ref = db.reference(f'events/{event_id}')
-    return event_ref.get()
+    try:
+        event_ref = db.reference(f'events/{event_id}')
+        return event_ref.get()
+    except Exception as e:
+        logger.error(f"Fehler beim Abrufen des Events {event_id}: {str(e)}")
+        return None
 
 def delete_event(event_id):
-    event_ref = db.reference(f'events/{event_id}')
-    event_ref.delete()
-    return True
+    try:
+        event_ref = db.reference(f'events/{event_id}')
+        event_ref.delete()
+        logger.info(f"Event {event_id} erfolgreich gelöscht")
+        return True
+    except Exception as e:
+        logger.error(f"Fehler beim Löschen des Events {event_id}: {str(e)}")
+        return False
 
 def update_event(event_id, updated_event):
-    event_ref = db.reference(f'events/{event_id}')
-    event_ref.update(updated_event)
-    return True
+    try:
+        event_ref = db.reference(f'events/{event_id}')
+        event_ref.update(updated_event)
+        logger.info(f"Event {event_id} erfolgreich aktualisiert")
+        return True
+    except Exception as e:
+        logger.error(f"Fehler beim Aktualisieren des Events {event_id}: {str(e)}")
+        return False
 
 def get_news_item(news_id):
-    news_ref = db.reference(f'news/{news_id}')
-    return news_ref.get()
+    try:
+        news_ref = db.reference(f'news/{news_id}')
+        return news_ref.get()
+    except Exception as e:
+        logger.error(f"Fehler beim Abrufen der Neuigkeit {news_id}: {str(e)}")
+        return None
 
 def delete_news_item(news_id):
-    news_ref = db.reference(f'news/{news_id}')
-    news_ref.delete()
-    return True
+    try:
+        news_ref = db.reference(f'news/{news_id}')
+        news_ref.delete()
+        logger.info(f"Neuigkeit {news_id} erfolgreich gelöscht")
+        return True
+    except Exception as e:
+        logger.error(f"Fehler beim Löschen der Neuigkeit {news_id}: {str(e)}")
+        return False
 
 def update_news_item(news_id, updated_news):
-    news_ref = db.reference(f'news/{news_id}')
-    news_ref.update(updated_news)
-    return True
+    try:
+        news_ref = db.reference(f'news/{news_id}')
+        news_ref.update(updated_news)
+        logger.info(f"Neuigkeit {news_id} erfolgreich aktualisiert")
+        return True
+    except Exception as e:
+        logger.error(f"Fehler beim Aktualisieren der Neuigkeit {news_id}: {str(e)}")
+        return False
 
 def register_user_for_event(user_id, event_id):
     try:
-        # Überprüfen, ob der Benutzer bereits für das Event registriert ist
         user_events_ref = db.reference(f'user_events/{user_id}')
         user_events = user_events_ref.get()
         
         if user_events and event_id in user_events:
             return False  # Benutzer ist bereits registriert
         
-        # Benutzer für das Event registrieren
         user_events_ref.update({event_id: True})
         
-        # Teilnehmerzahl des Events erhöhen
         event_ref = db.reference(f'events/{event_id}')
         event_ref.update({
             'participants': db.reference(f'events/{event_id}/participants').get() + 1
         })
         
+        logger.info(f"Benutzer {user_id} erfolgreich für Event {event_id} registriert")
         return True
     except Exception as e:
-        logger.error(f"Fehler bei der Registrierung des Benutzers für das Event: {str(e)}")
+        logger.error(f"Fehler bei der Registrierung des Benutzers {user_id} für das Event {event_id}: {str(e)}")
         return False
 
 def initialize_event_structure():
-    events_ref = db.reference('events')
-    if not events_ref.get():
-        events_ref.set({
-            'example_event_id': {
-                'title': 'Beispiel Event',
-                'description': 'Dies ist ein Beispiel-Event',
-                'date': '2025-03-15',
-                'location': 'Küllstedt',
-                'organizerId': 'example_user_id',
-                'participants': 0
-            }
-        })
-    
-    user_events_ref = db.reference('user_events')
-    if not user_events_ref.get():
-        user_events_ref.set({
-            'example_user_id': {
-                'example_event_id': True
-            }
-        })
+    try:
+        events_ref = db.reference('events')
+        if not events_ref.get():
+            events_ref.set({
+                'example_event_id': {
+                    'title': 'Beispiel Event',
+                    'description': 'Dies ist ein Beispiel-Event',
+                    'date': '2025-03-15',
+                    'location': 'Küllstedt',
+                    'organizerId': 'example_user_id',
+                    'participants': 0
+                }
+            })
+        
+        user_events_ref = db.reference('user_events')
+        if not user_events_ref.get():
+            user_events_ref.set({
+                'example_user_id': {
+                    'example_event_id': True
+                }
+            })
+        logger.info("Event-Struktur erfolgreich initialisiert")
+    except Exception as e:
+        logger.error(f"Fehler bei der Initialisierung der Event-Struktur: {str(e)}")
 
 def add_event(event_data):
-    events_ref = db.reference('events')
-    new_event_ref = events_ref.push()
-    new_event_ref.set(event_data)
-    return new_event_ref.key
+    try:
+        events_ref = db.reference('events')
+        new_event_ref = events_ref.push()
+        new_event_ref.set(event_data)
+        logger.info(f"Neues Event erfolgreich hinzugefügt mit ID: {new_event_ref.key}")
+        return new_event_ref.key
+    except Exception as e:
+        logger.error(f"Fehler beim Hinzufügen eines neuen Events: {str(e)}")
+        return None
 
 def get_news():
     return get_data('news')
 
 def add_news(news_data):
-    news_ref = db.reference('news')
-    new_news_ref = news_ref.push()
-    new_news_ref.set(news_data)
-    return new_news_ref.key
+    try:
+        news_ref = db.reference('news')
+        new_news_ref = news_ref.push()
+        new_news_ref.set(news_data)
+        logger.info(f"Neue Neuigkeit erfolgreich hinzugefügt mit ID: {new_news_ref.key}")
+        return new_news_ref.key
+    except Exception as e:
+        logger.error(f"Fehler beim Hinzufügen einer neuen Neuigkeit: {str(e)}")
+        return None
 
-# Fügen Sie diese Funktion hinzu, um die Firebase-Initialisierung aufzurufen
+# Initialisiere Firebase beim Importieren dieses Moduls
 initialize_firebase()
+
+# Liste der exportierten Funktionen
+__all__ = [
+    'get_firebase_config', 'initialize_firebase', 'push_data', 'get_data',
+    'get_realtime_data', 'push_realtime_data', 'update_realtime_data',
+    'remove_realtime_data', 'create_tournament', 'update_tournament',
+    'get_tournament', 'add_team_to_tournament', 'update_match_result',
+    'search_data', 'get_analytics_data', 'send_push_notification',
+    'test_db_connection', 'get_events', 'get_event', 'delete_event',
+    'update_event', 'get_news_item', 'delete_news_item', 'update_news_item',
+    'register_user_for_event', 'initialize_event_structure', 'add_event',
+    'get_news', 'add_news'
+]
+

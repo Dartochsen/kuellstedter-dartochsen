@@ -1,0 +1,68 @@
+<div id="chatbot-container" class="d-none d-md-block" style="position: fixed; bottom: 20px; right: 20px; width: 300px; border: 1px solid #ddd; border-radius: 10px; background: white; box-shadow: 0 0 10px rgba(0,0,0,0.1); z-index: 1000;">
+    <div id="chatbot-header" class="p-2 bg-primary text-white d-flex justify-content-between align-items-center" style="border-top-left-radius: 10px; border-top-right-radius: 10px;">
+        <h5 class="mb-0">Dartochsen-Bot</h5>
+        <button id="close-chatbot" class="btn btn-sm btn-outline-light" aria-label="Chatbot schließen">×</button>
+    </div>
+    <div id="chatbot-messages" style="height: 300px; overflow-y: auto; padding: 10px;"></div>
+    <div class="d-flex p-2">
+        <input type="text" id="chatbot-input" class="form-control me-2" placeholder="Fragen Sie den Dartochsen-Bot...">
+        <button onclick="sendMessage()" class="btn btn-primary">Senden</button>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const chatbotContainer = document.getElementById('chatbot-container');
+    const closeChatbotButton = document.getElementById('close-chatbot');
+    const chatbotInput = document.getElementById('chatbot-input');
+
+    closeChatbotButton.addEventListener('click', function() {
+        chatbotContainer.classList.add('d-none');
+    });
+
+    chatbotInput.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            sendMessage();
+        }
+    });
+});
+
+function sendMessage() {
+    var input = document.getElementById("chatbot-input");
+    var message = input.value.trim();
+    if (message === "") return;
+    
+    input.value = "";
+    
+    displayMessage("Sie: " + message);
+    
+    fetch('/chatbot', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({message: message}),
+    })
+    .then(response => response.json())
+    .then(data => {
+        displayMessage("Bot: " + data.response);
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        displayMessage("Bot: Entschuldigung, es gab einen Fehler bei der Verarbeitung Ihrer Anfrage.");
+    });
+}
+
+function displayMessage(message) {
+    var chatbox = document.getElementById("chatbot-messages");
+    var messageElement = document.createElement("p");
+    messageElement.textContent = message;
+    chatbox.appendChild(messageElement);
+    chatbox.scrollTop = chatbox.scrollHeight;
+}
+
+function toggleChatbot() {
+    const chatbotContainer = document.getElementById('chatbot-container');
+    chatbotContainer.classList.toggle('d-none');
+}
+</script>

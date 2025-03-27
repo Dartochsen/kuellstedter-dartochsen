@@ -1,0 +1,13 @@
+from PIL import Image, ImageDraw
+
+# Create a 32x32 image with a transparent background
+favicon = Image.new('RGBA', (32, 32), (255, 255, 255, 0))
+draw = ImageDraw.Draw(favicon)
+
+# Draw a simple circle in the center
+draw.ellipse((8, 8, 24, 24), fill=(255, 0, 0, 255))
+
+# Save the image as favicon.png
+favicon.save("favicon.png")
+
+print("favicon.png file created successfully.")

@@ -1,0 +1,17 @@
+css_content = """
+body { margin: 0; padding: 0; font-family: 'Roboto', sans-serif; }
+.container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+.navbar { background-color: #333; color: #fff; padding: 10px; }
+.navbar a { color: #fff; text-decoration: none; padding: 5px 10px; }
+.navbar a:hover { background-color: #555; }
+.footer { background-color: #333; color: #fff; text-align: center; padding: 10px; position: fixed; bottom: 0; width: 100%; }
+"""
+
+# Minify the CSS content
+minified_css = "".join([line.strip() for line in css_content.splitlines()])
+
+# Save the minified CSS to a file
+with open("styles.min.css", "w") as css_file:
+    css_file.write(minified_css)
+
+print("styles.min.css file created successfully.")
